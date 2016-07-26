@@ -1,0 +1,108 @@
+---
+title: "Primer Analisis Data Set"
+author: "Montse Figueiro"
+date: "26 de julio de 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Summary
+
+Nos da un resumen de como estan medidas las diferentes variables, mostrando:
+* Minimo, **min()**
+* Primer cuartil
+* Mediana
+* Tercer cuartil
+* Máximo, **max()**
+
+La diferencia entre el mínimo y el máximo es el rango. range() and diff() te permitiría analizar esa diferencia.
+
+Los cuartiles dividen el dataset en 4 partes, cada uno con el mismo número de valores.
+
+La diferencia entre cuartil 1 y cuartil 3 es Rango intercuartil (IQR), se puede calcular con la función **IQR()** 
+
+
+**quantile()** nos devuelve los cinco números de summary.
+**quantile(usedcars$price,probs=c(0.01,0.99))** podemos sacar los quantiles que queramos, aquí por ejemplo en el 1% y en el 99%.
+**quantile(usedcars$price,seq(from=0,to=1,by=0.20))** aquí saco el 0%,20%.....
+
+###Interpretación
+
+Esto nos ayuda a ver la dispersión de los datos. El dataset nos dice que el mínimo es 3800 y el máximo 21992, la diferencia entre el mínimo y el Q1 es 7000, la diferencia entre el máximo y el Q3 son 7000 tambien. En cambio la diferencia entre Q1 y Q3 que es el 50% del medio son 2000. Los datos están más estrechamente agrupados en el centro, esto es típico en una distribución normal.
+
+Esto explica porque la media es mucho más grande que la mediana, porque la media es sensible a los valores extremos.
+
+##BOXPLOTS - visualizando los datos
+
+El boxplot muestra los cinco números de summary usando lineas horizontales. La caja muestra Q1, mediana y Q3, leyendo desde abajo hacia arriba. La mediana es la linea en negrita. El mínimo y el máximo está representado por rayas discontinuas. Solo permite extender las rayas discontinuas hasta 1.5 veces el IQR, debajo de Q1 o encima de Q3.
+
+Por ejemplo:
+Q1 es 26
+Q3 es 56
+
+IQR es 30 (diferencia entre Q3 y Q1)
+
+Q3 + 1.5 * 30 = 101 (no puede llegar hasta 120 que es el máximo)
+Q1 - 1.5 * 30 = -9 (llegará hasta el mínimo que es 2)
+
+
+**boxplot(cars$dist="Dist Cars",ylab="Km")**
+
+```{}
+summary(cars$dist)
+boxplot(cars$dist,main="Dist Cars",ylab="Km")
+```
+
+##HISTOGRAMAS
+
+Divide los valores de las variables en **bins** columnas, un boxplot requiere cada una de las 4 porciones contenga el mismo número de valores. En contraste el histograma usa cualquier número de barras de identico ancho y permite contener dentro diferente número de valores.
+
+```{r}
+hist(cars$dist,main="Distance Cars",xlab="Km")
+
+```
+Las barras indican la frecuencia de los valores, es este ejemplo vemos que lo más frecuente es que el coche para frenar recorra una distancia de entre 20 y 40 metros.
+
+El histograma tiene una oblicuidad hacia la derecha.
+
+##Distribución NORMAL
+
+###Varianza y Desviación Standar
+
+varianza se define como la media de la suma de las diferencias entre cada valor y la media al cuadrado.
+
+Var= (sum((x-Media)^2))/n
+Std= sqrt(Var)
+R utiliza n-1 (sample variance), excepto en dataset muy pequeños la diferencia es mínima.
+
+```{r}
+var(cars$dist)
+sd(cars$dist)
+```
+
+Cuando la varianza es muy grande esto indica que los datos se difunden muy ampliamente alrededor de la media. La desviación standar te indica para cada valor cuanto difiere de la media.
+
+###Variables Categóricas
+
+Cuando importamos los datos como astringsAsFactors = FALSE, R deja las variables como character en lugar de convertirlas en factores.
+Podemos considerar poner los años como categórica, aunque está como entero cada año es una categoría.
+
+Este tipo de datos se examina usando tablas en lugar de estadísticas.
+
+One-way table : presenta una sola variable categórica.
+```{r}
+head(iris)
+table(iris$Species)
+```
+Nos hace una lista de las diferentes categorías y cuantos valores hay dentro de cada una.
+
+R puede calcular la tabla de proporciones:
+```{r}
+species_table <- table(iris$Species)
+prop.table(species_table)
+species_pct <- prop.table(species_table) *100
+round(species_pct,digits=1)
+```
