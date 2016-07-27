@@ -175,5 +175,41 @@ str(df)
 ```
 En este ejemplo se han clasificado las comidas según unas variables, en 3 clases, fruta, carne o verdura.
 
+En este ejemplo solo tenemos 2 variables con lo que podemos representar los datos con un scatterplot:
+```{r}
+plot(x=df$sweetness,y=df$crunchiness)
+```
+En este ejemplo hay muy pocas observaciones y no se pueden ver agrupaciones.
 
+###Calculo Distancia
+
+El algoritmo kNN usa la distancia Euclidean. La distancia entre dos observaciones **p** y **q** es la raíz cuadrada de la suma de las distancias al cuadrado.
+p1 es el valor de la variable 1 para p
+q1 es el valor de la variable 1 para q
+
+dist(p,q)=sqrt(sum((p1-q1)^2+(p2-q2)^2.....))
+
+La formula compara los valores para cada variable. Por ejemplo entre el tomate y la banana o entre el tomate y el queso...
+
+Cuando calculemos todas las distancias del tomate al resto de ingredientes, veremos con que ingrediente tiene menos distancia, se llama clasificación 1NN porque k=1, por ejemplo, si el más cercano es la naranja, clasificará al tomate como "fruit". 
+Si usamos kNN con k=3, lleva a cabo una votación entre los 3 vecinos más cercanos, los tres más cercanos son naranja, uva y cacahuete, 2 de 3 son frutas, el tomate lo clasificará como "fruit".
+
+###Elección de **k**
+
+Determinar un número correcto de vecinos determinará como de bueno será el modelo para generalizar a datos futuros. 
+Escoger una k muy grande reduce el impacto de la varianza causada por el ruido, pero corre el riesgo de ignorar pequeños patrones.
+
+Ejemplo: Tomar una k igual al nº de observaciones, cada observación estaría representada en el voto final. 
+
+Tomar una k=1 implica que permita ruido y outliers, que influencian la clasificación de los ejemplos. Algunas de las observaciones pueden estar mal clasificadas.
+
+El mejor valor para **k** es alguno entre estos dos.
+
+Valores pequeños permiten más complejas decisiones, que mas cuidadosamente encaja en el training data.
+
+Normalmente k está entre 3 y 10. Una práctica común es la raíz cuadrada del número de ejemplos del training dataset. En el ejemplo anterior teníamos 15 ingredientes, 3.87.
+
+Una alternativa es usar diferentes **k** en diferentes test datasets y elegir uno que nos dé la mejor clasificación. si los datos tienen mucho ruido y son muy grande el número de observaciones, la elección de la **k** puede ser menos importante.
+
+###Preparando datos para usar kNN
 
