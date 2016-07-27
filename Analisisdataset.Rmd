@@ -106,3 +106,74 @@ prop.table(species_table)
 species_pct <- prop.table(species_table) *100
 round(species_pct,digits=1)
 ```
+Así podemos ver para las diferentes categorías cual es la más frecuente.
+
+###Analizando la Moda
+En estadística la moda es el valor que ocurre con más frecuencia. Esta se utiliza frecuentemente en datos categóricos, ya que no se puede usar la media o la mediana.
+
+Una variable puede tener una moda o más
+* unimodal
+* bimodal
+* multimodal
+
+Es mejor relacionar la moda con otras categorias. Hay alguna categoría que domina a otra? Si los colores de coche son plata y negro, considero que estamos hablando de coches de lujo? o coches económicos, cuales se venden con menos opciones de color?
+En un histograma la moda sería la barra más alta.
+
+##RELACIÓN ENTRE VARIABLES
+
+###SCATTERPLOT
+
+Es un diagrama que representa la relación entre dos variables mediante circulos,  una variable se representa en el eje "x" y otra variables en el eje "y". 
+
+```{}
+plot(x=cars$dist,y=cars$speed,main="Scatterplot of Speed and Distance",ylab="Distance",xlab="Speed")
+```
+Vemos una relación entre la velocidad y la Distancia recorrida. Tienen una relación positiva, el patrón de circulos es ascendente.
+Podría ser una relación negativa si la linea fuera descendiente. Y no tendrían nada que ver si la linea fuera plana.
+
+La **Correlación** mide la relación entre dos variables.
+
+###Tabulación Cruzada
+
+Mide la relación entre dos variables. Como los valores de una variable varian en función de otra variable. El formato es una tabla donde las filas son los niveles de una variable mientras las columna son los niveles de la otra
+
+**CrossTable()**
+
+library(gmodels)
+CrossTable(x=train_sample$Cat1,y=train_sample$Cat2)
+
+
+##Clasificación usando Nearest Neighbors
+
+Mide la similitud de dos muestras midiendo distancias. Se ha utilizado por ejemplo:
+
+* Reconocimiento facial en imagenes y videos
+* Predecir cuando una persona va a disfrutar una película que le ha sido recomendada (Netflix)
+* Identificar patrones en datos genéticos al detectar una específica proteína.
+
+Por lo general este método de clasificación es bueno cuando la relación entre las variables y las clases objetico es alto, complicado y difícil de entender. Si no hay una clara distinción entre grupos el algorítmo es largo y no es bueno identificando los límites.
+
+###The KNN algorithm
+
+|Fortalezas                  |                               Debilidades  |
+|----------------------------|--------------------------------------------|
+|Simple y efectivo | No produce un modelo, lo que lo limita para encontrar nuevos conocimientos en las relaciones entre las variables|
+|No hace suposiciones sobre la distribucion de los datos subyacente | Fase de clasificación lenta|
+| Fase de entrenamiento rápida | Requiere mucha memoria |
+| | Variables nominales y missing data requieren procesamiento adicional |
+
+kNN empieza con un training dataset con observaciones classificado en diferentes categorias, y etiquetadas por una variable nominal. Tenemos también un test dataset sin etiquetar que tiene el mismo número de variables que el training data. Para cada observación en el test dataset kNN identifica **k** observaciones en training dataset que son "vecinos", **k** es un entero especificado con anterioridad. A la observación del test datset se le asigna la clase de la mayoria de los k vecinos.
+
+```{r}
+ingredient <- c("apple","bacon","banana","carrot","celery","cheese")
+sweetness <- c(10,1,10,7,3,1)
+crunchiness <- c(9,4,1,10,10,1)
+foodtype <- c("fruit","protein","fruit","vegetable","vegetable","protein") 
+df <- data.frame(ingredient,sweetness,crunchiness,foodtype)
+df
+str(df)
+```
+En este ejemplo se han clasificado las comidas según unas variables, en 3 clases, fruta, carne o verdura.
+
+
+
