@@ -307,3 +307,16 @@ colnames(datacancer)[6] <- "smoothness_mean"
 Nos centramos en 3 variables, radius_mean, area_mean y smoothness_mean, el rango de la primera va desde 6.9 a 28.11, la segunda 143.5 a 2501 y la última de 0.052 a 0.1634, el impacto de la segunda variable va a ser mas que las otras al calcular las distancias.
 
 Vamos a aplicar la normalización.
+
+##Normalización Datos
+
+Vamos a crear la función "normalize":
+
+```{r}
+normalize <- function(x){return ((x-min(x))/(max(x)-min(x)))}
+```
+Prueba (el resultado es el mismo para los dos vectores):
+```{r}
+normalize(c(1,2,3,4,5))
+normalize(c(100,200,300,400,500))
+```
