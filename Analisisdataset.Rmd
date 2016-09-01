@@ -187,7 +187,7 @@ El algoritmo kNN usa la distancia Euclidean. La distancia entre dos observacione
 p1 es el valor de la variable 1 para p
 q1 es el valor de la variable 1 para q
 
-dist(p,q)=sqrt(sum((p1-q1)^2+(p2-q2)^2.....))
+$dist(p,q)=\sqrt{\sum_{i=1}^n ((p1-q1)^2+(p2-q2)^2.....))}$
 
 La formula compara los valores para cada variable. Por ejemplo entre el tomate y la banana o entre el tomate y el queso...
 
@@ -213,3 +213,97 @@ Una alternativa es usar diferentes **k** en diferentes test datasets y elegir un
 
 ###Preparando datos para usar kNN
 
+Las variables se suelen normalizar antes de usar kNN. Esto es así porque el cálculo de las distancias depende de las unidades con las que esté medida la variable. Esto no sería un problema en el caso anterior porque las medidas de las comidas iban de 1 a 10. Pero si por ejemplo una variable estuviera medida en valores de 1 a 1000000, el impacto de las otras variables se vería disminuido.
+
+Necesitamos escalar las variables de manera que cada una de ellas contribuya relativamente igual dentro de la fórmula. En el caso anterior querremos que la última variable esté entre 1 y 10.
+
+* Min-Max normalización
+
+Transforma todas las medidas para que estén entre el rango 0-1.
+
+$Xnew = \frac{X - min(X)}{max(X)-min(X)}$
+
+* Z-score Standarización
+
+Es el valor menos la media dividido por la desviación standar.
+
+$Xnew = \frac{X-\mu}{\sigma}$
+
+Esta fórmula está basada en propiedades de la distribución normal. Reescala cada valor de cada variable según cuanta desviacion standar tenga por encima o por debajo de la media. El resultado se llama z-score.
+
+La distancia Euclidean no está definida para variables nominales, antes hay que pasarlas a numéricas. Una solución típica es utilizar dummy coding, donde 1 indica una categoría y 0 la otra.
+
+Nueva variable llamada "male", tendrá los siguientes valores:
+
+* 1 male
+* 0 otherwise
+
+Una variable nominal con *n* categorias puede ser codificada con dummy, por ejemplo si tenemos 3 categorias de tiempo (caliente, templado y frío):
+
+* Caliente = 1 es caliente y 0 el resto
+* Templado = 1 es templado y 0 el resto
+
+Si es 0 sabemos que es frío, no necesitamos una tercera variable, tendremos (n-1) variables dummy.
+La distancia entre variables dummy es siempre 0 o 1. 
+
+Otra alternativa sería numerar las categorias, 1,2,3 y después normalizar. Quedando 0, 0.5 y 1, esto solo puede ser usado si sabes que la diferencia entre las categorías es proporcional. Si por ejemplo estamos midiendo, pobre, clase media y ricos, la diferencia entre pobre y clase media es más o menos que la diferencia entre clase media y ricos, entonces es mejor utilizar dummy.
+
+
+###kNN es un algoritmo perezoso?
+
+Un aprendizaje perezoso es un aprendizaje de memoria, no construye un modelo, es una modelo de aprendizaje no paramétrico, no se aprenden parámetros sobre los datos. Limita nuestra capacidad de entender como está clasificando los datos. Aunque puede ser bastante potente.
+
+##Diagnosticando Cancer de pecho con kNN
+
+El exámen de rutina de cáncer de mama permite ser diagnosticado y tratado antes de que se noten los síntomas. El proceso consiste en detectar masas anormales. Si una masa es detectada se extrae una muestra y se analiza (biopsia), para determinar si es maligna o benigna.
+
+Los datos aportados por esas biopsias son los que vamos a analizar para investigar con machine learning.
+
+###Base de Datos
+
+vamos a utilizar el Breast Cancer Wisconsin Diagnostic dataset de la siguiente página:
+
+["BreastCancerDataset"](https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.data)
+
+```{r}
+DataCancer <- read.csv("https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.data",sep=",",header=FALSE)
+write.csv(DataCancer,file="DataCancer.csv")
+datacancer <- read.csv("DataCancer.csv")
+head(datacancer)
+datacancer$X <- NULL
+str(datacancer)
+```
+Tenemos 569 observaciones con 32 variables.
+```{r}
+colnames(datacancer)[1] <- "id"
+colnames(datacancer)[c(2,3,4,5,6)] <-c("diagnosis","radius_mean","texture_mean","perimeter_mean","area_mean")
+```
+La primera variable es un identificador de cada paciente, no tiene que haber registros duplicados.
+```{r}
+anyDuplicated(datacancer$id)
+length(unique(datacancer$id))
+```
+No nos aporta información para el modelo y hay que excluirla. Suelen ser excluidas siempre las variables ID
+
+```{r}
+datacancer <- datacancer[-1]
+```
+Diagnosis indica si la masa es maligna o benigna
+```{r}
+table(datacancer$diagnosis)
+datacancer$diagnosis <- factor(datacancer$diagnosis,levels=c("B","M"), labels=c("Benign","Malignant"))
+head(datacancer)
+```
+357 casos son benignos y 212 malignos
+Queremos saber el porcentaje de casos
+```{}
+round(prop.table(table(datacancer$diagnosis)) * 100, digits=1)
+```
+Las otras 30 variables son numéricas
+```{r}
+summary(datacancer)
+colnames(datacancer)[6] <- "smoothness_mean"
+```
+Nos centramos en 3 variables, radius_mean, area_mean y smoothness_mean, el rango de la primera va desde 6.9 a 28.11, la segunda 143.5 a 2501 y la última de 0.052 a 0.1634, el impacto de la segunda variable va a ser mas que las otras al calcular las distancias.
+
+Vamos a aplicar la normalización.
