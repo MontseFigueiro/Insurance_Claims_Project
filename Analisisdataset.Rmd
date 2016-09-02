@@ -1,8 +1,8 @@
 ---
-title: "Primer Analisis Data Set"
+title: "Analisis Breast Cancer"
 author: "Montse Figueiro"
 date: "26 de julio de 2016"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -12,22 +12,23 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Summary
 
 Nos da un resumen de como estan medidas las diferentes variables, mostrando:
-* Minimo, **min()**
+
+* Mínimo **min()**
 * Primer cuartil
 * Mediana
 * Tercer cuartil
-* Máximo, **max()**
+* Máximo **max()**
 
-La diferencia entre el mínimo y el máximo es el rango. range() and diff() te permitiría analizar esa diferencia.
+La diferencia entre el mínimo y el máximo es el rango. "range()" and "diff()" te permitiría analizar esa diferencia.
 
 Los cuartiles dividen el dataset en 4 partes, cada uno con el mismo número de valores.
 
 La diferencia entre cuartil 1 y cuartil 3 es Rango intercuartil (IQR), se puede calcular con la función **IQR()** 
 
 
-**quantile()** nos devuelve los cinco números de summary.
-**quantile(usedcars$price,probs=c(0.01,0.99))** podemos sacar los quantiles que queramos, aquí por ejemplo en el 1% y en el 99%.
-**quantile(usedcars$price,seq(from=0,to=1,by=0.20))** aquí saco el 0%,20%.....
+* **quantile()** nos devuelve los cinco números de summary.
+* **quantile(usedcars$price,probs=c(0.01,0.99))** podemos sacar los quantiles que queramos, aquí por ejemplo en el 1% y en el 99%.
+* **quantile(usedcars$price,seq(from=0,to=1,by=0.20))** aquí saco el 0%,20%.....
 
 ###Interpretación
 
@@ -320,3 +321,90 @@ Prueba (el resultado es el mismo para los dos vectores):
 normalize(c(1,2,3,4,5))
 normalize(c(100,200,300,400,500))
 ```
+Aplicamos la función a las 30 variables, podemos usar **lapply()** para aplicar la función a cada variable y convertir la lista devuelta por lapply en un dataframe con **as.data.frame()**
+```{r}
+datoscancer_norm <- as.data.frame(lapply(datacancer[2:31],normalize))
+summary(datoscancer_norm$radius_mean)
+```
+##Creando Training y Test Datasets
+
+Cogeremos las primeras 469 filas para el training dataset y las otras 100 para el test dataset. Podemos hacerlo de esta manera si los datos no han sido ordenados y son aleatorios. 
+```{r}
+dc_train <- datoscancer_norm[1:469,]
+dc_test <- datoscancer_norm[470:569,]
+```
+Cuando construimos los dataset excluimos la columna diagnosis. Esta es la columna diagnosis para train y test:
+
+```{r}
+datos_train_labels <- datacancer[1:469,1]
+datos_test_labels <- datacancer[470:569,1]
+```
+Utilizaremos esta columna más adelante para evaluar nuestra clasificación.
+
+##Training un modelo en nuestros datos
+
+La función knn() está en el paquete "class", para cada observación la función identificará el k-vecino más cercano, usando la distancia Euclidean, donde "k" es un número especificado.
+```{r}
+library(class)
+```
+Sintaxis de la función knn():
+
+p <-  knn(train,test,class,k)
+* train es una data frame con los datos numericos (training dataset)
+* test es un data frame con los datos numéricos (test dataset)
+* class es un vector de factores con la clasificación de cada fila en el train dataset
+* k es un entero que indica el numero de vecinos.
+
+```{r}
+datacancer_test_pred <-  knn(train=dc_train,test=dc_test,cl=datos_train_labels,k=3)
+```
+Nos devuelve un vector con la prediccion para cada fila del test dataset (factores benignos o malignos)
+##Evaluación del modelo
+
+El siguiente paso es evaluar como de bien ha ajustado las predicciones en el vector "datacancer_test_pred"
+
+```{r}
+library(gmodels)
+```
+Podemos cruzar el **datos_test_labels** con el **datacancer_test_pred** para ver si coinciden los dos vectores.
+```{r}
+CrossTable(x=datos_test_labels,y=datacancer_test_pred, prop.chisq = FALSE )
+```
+El la celda superior izquierda están los TN, 72 valores de 100, indican los casos que eran Benignos y el knn algoritmo los identifica correctamente. 
+La celda inferior derecha son los casos Malignos que el algoritmo clasifica correctamente.TP.
+
+Los otros 6 casos son los que no ha clasificado correctamente.Hay un caso el el nivel inferior izquierdo que son los Falsos Negativos, el algoritmo los clasificó como Benignos y en realidad fueron Positivos. Los otros 5 casos son Falsos Positivos, los clasificó como Malignos pero realmente son Benignos. 
+
+Un 1% son falsos Negativos, son los verdaderamente peligrosos. Podemos probar otra iteracion del modelo para ver si podemos reducir el número de valores incorrectos.
+
+##Improving Model performance
+
+vamos a intentar dos variaciones:
+* Un método alternativo para escalar las variables numéricas
+* Probaremos diferentes valores de k
+
+###Z-score estandarización
+
+Con tumores malignos podemos ver algunos "outliers" valores extremos, estos tienen que tener más peso en el cálculo de las distancias.
+Las función scale() utiliza la estandarización z-score.
+```{r}
+data_z <- as.data.frame(scale(datacancer[-1]))
+
+summary(data_z$area_mean)
+```
+La media de una variable estandarizada z-score tiene que ser 0. Una variable mayor que 3 y menor que -3 indica valores extremos raros.
+
+Como hicimos antes hay que dividir los datos en 2 partes:
+
+```{r}
+train <- data_z[1:469,]
+test <- data_z[470:569,]
+train_labels <- datacancer[1:469,1]
+test_labels <- datacancer[470:569,1]
+test_pred <- knn(train=train,test=test,cl=train_labels,k=21)
+CrossTable(x=test_labels,y=test_pred,prop.chisq = FALSE)
+```
+En este caso hemos clasificado el 98% de los casos correctamente, con respecto al 94% anterior.
+
+##Alternativos valores de K
+
