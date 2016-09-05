@@ -42,4 +42,5 @@ knitr::opts_chunk$set(echo = TRUE)
 |NVVar2|	Continuous non-vehicle variable, mean 0 stdev 1	|||-0.26612|-0.26612|-0.26612|-0.01003|-0.26612|8.88308|| 	 	   
 |NVVar3|	Continuous non-vehicle variable, mean 0 stdev 1	|||-0.27234|-0.27234|-0.27234|-0.04531|-0.27234|8.69114|| 	 	   
 |NVVar4	|Continuous non-vehicle variable, mean 0 stdev 1	 |||-0.251419|-0.251419|-0.251419|0.009567|-0.251419|6.388802||	 	 
-|Claim_Amount	|Non-negative real number, 99% zeros on the training set|||   
+|Claim_Amount	|Non-negative real number, 99% zeros on the training set|||
+

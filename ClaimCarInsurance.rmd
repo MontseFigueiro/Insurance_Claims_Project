@@ -19,6 +19,7 @@ Calendar_Year is the year that the vehicle was insured.  Household_ID is a house
 Our dataset naturally contained some missing values. Records containing missing values have been removed from the test data set but not from the training dataset. You can make use of the records with missing values, or completely ignore them if you wish. They are coded as "?".
 
 There are two datasets to download: training data and test data. You will use the training dataset to build your model, and will submit predictions for the test dataset. The training data has information from 2005-2007, while the test data has information from 2008 and 2009. Submissions should consist of a CSV file. Records from 2008 will be used to score the leaderboard, and records from 2009 will be used to determine the final winner.
+
 ```{}
 library(data.table)
 train <- fread("train_set.csv")
