@@ -1,0 +1,109 @@
+---
+title: "Claim Car Insurance"
+author: "Montse Figueiro"
+date: "6 de julio de 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+You only need to download one format of each file.
+Each has the same contents but use different packaging methods.
+
+Each row contains one year's worth information for insured vehicles.  Since the goal of this competition is to improve the ability to use vehicle characteristics to accurately predict insurance claim payments, the response variable (dollar amount of claims experienced for that vehicle in that year) has been adjusted to control for known non-vehicle effects. Some non-vehicle characteristics (labeled as such in the data dictionary) are included in the set of independent variables.  It is expected that no "main effects" corresponding will be found for these non-vehicle variables, but there may be interesting interactions with the vehicle variables. 
+
+Calendar_Year is the year that the vehicle was insured.  Household_ID is a household identification number that allows year-to-year tracking of each household. Since a customer may insure multiple vehicles in one household, there may be multiple vehicles associated with each household identification number. "Vehicle" identifies these vehicles (but the same "Vehicle" number may not apply to the same vehicle from year to year). You also have the vehicle's model year and a coded form of make (manufacturer), model, and submodel.  The remaining columns contain miscellaneous vehicle characteristics, as well as other characteristics associated with the insurance policy.  See the "data dictionary" (data_dictionary.txt) for additional information.
+
+Our dataset naturally contained some missing values. Records containing missing values have been removed from the test data set but not from the training dataset. You can make use of the records with missing values, or completely ignore them if you wish. They are coded as "?".
+
+There are two datasets to download: training data and test data. You will use the training dataset to build your model, and will submit predictions for the test dataset. The training data has information from 2005-2007, while the test data has information from 2008 and 2009. Submissions should consist of a CSV file. Records from 2008 will be used to score the leaderboard, and records from 2009 will be used to determine the final winner.
+```{}
+library(data.table)
+train <- fread("train_set.csv")
+test <- read.csv("test_set.csv")
+str(test)
+unique(test$Calendar_Year)  
+```
+#problema de memoria
+library(pryr)
+
+```{r}
+memory.limit()
+object_size(train)
+memory.limit(size=16384)
+```
+##Substituimos el importe por 0 o 1 (no importe - si importe)
+prueba <- train[sample(nrow(train), 100000), ]
+sum(prueba$Claim_Amount)
+prueba$damage <- ifelse(prueba$Claim_Amount==0,"0","1")
+prueba$damage <- as.factor(prueba$damage)
+sum(prueba$Claim_Amount!=0)
+sum(prueba$Claim_Amount)
+
+###Número de casos con daño corporal.
+sum(train$Claim_Amount==0)
+sum(train$Claim_Amount!=0)
+sum(prueba$Claim_Amount!=0)
+
+#Vamos a trabajar inicialmente sobre una muestra de 2 millones de observaciones:
+````{r}
+train_sample <- train[sample(nrow(train), 2000000), ]
+train_sample <- as.data.frame(train_sample)
+dim(train_sample)
+str(train_sample)
+
+```
+
+#Cambiamos el tipo de variables, el año es mejor como factor?
+```{r}
+library(plyr)
+train_sample[6:20] <- lapply(train_sample[6:20], as.factor) 
+train_sample$NVCat <- as.factor(train_sample$NVCat)
+train_sample$OrdCat <- as.integer(train_sample$OrdCat)
+#OrdCat tiene niveles del 1 al 7 y ?
+```
+
+#Comprobacion filas duplicadas
+```{r}
+anyDuplicated(train_sample)
+train_sample[duplicated(train_sample),]
+head(train_sample)
+```
+##densidad
+
+```{r}
+install.packages("tigerstats")
+library(tigerstats)
+quantile(train_sample$Claim_Amount)
+summary(train_sample$Claim_Amount)
+quantile(train_sample$Claim_Amount,probs=c(0.85,0.99,1))
+nrow(train_sample)
+positiveclaim <- train_sample[train_sample$Claim_Amount>0,]
+nrow(positiveclaim)
+
+##Correlaciones entre variables???
+cor(train_sample$Var1,train_sample$Var2)
+cor(train_sample$Var1,train_sample$Var6)
+CrossTable(x=train_sample$Cat1,y=train_sample$Cat2)
+
+#de 2000000 solo 14517 han tenido siniestro, esto es el 0.7%
+densityplot(~Claim_Amount,data=train_sample,
+       xlab="Importe Reclamacion",
+       main="Densidad Reclamaciones")
+boxplot(train_sample$Claim_Amount,main="Importe Siniestros Daño Corporal",ylab="Importe")
+```
+
+write.csv(train, file = "train_clean.csv")
+#Tratamiento?
+str(train)
+summary(train_sample$Blind_Make)
+
+#casos en los que el importe del siniestro es superior a 0
+```{r}
+claimpositive <- train_sample[train$Claim_Amount>0,]
+dim(claimpositive)
+```
+
+``

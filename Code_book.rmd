@@ -1,0 +1,45 @@
+---
+title: "Code Book"
+author: "Montse Figueiro & Aniana González"
+date: "6 de julio de 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+|Blinded Variable|Description|Nbr Lvls in Train|Examples|Min.|1st Qu.|Median|Mean|3rd Qu.|Max.|Categorical       |	 
+|-----------------|:------------------|:-----------------:|--------|:---|:------|:------|:----|:--------|:----|:--------------------|
+|Household_ID	|Unique identifier for each household        |	4.31 million|	1,2,3,4,.|11885|1768780|3554356|3510335|5210180|7193708|
+|Vehicle	|Unique identifier for each vehicle within a household.     |	7.75 million (Household x Veh_ID combinations)|	1,2,3,.|1.000|1.000|1.000|1.771|2.000|19.000||
+|Calendar_Year|Calendar year during which vehicle was insured (not blinded)       |	3	|2005,2006,2007|2008|2008|2009|2009|2009|2009||	   
+|Model_Year|	Model year of vehicle (not blinded)|	29	|1981, 1982, . , 2009	|1984|2001|2004|2004|2006|2010||   
+|Blind_Make|	Vehicle make (example: ACME, coded A)|	74	|A,.,Z,AA,.,AZ,BA,.,BZ,.|||||||K: 554407    AU: 413009  Y:   362378  AO: 308624  X:   300597  BF: 161520 other: 2214330|	   
+|Blind_Model|	Vehicle model (example: ACME Roadster, coded A.1)|	1,302|	A.1, A.2,.,A.15,.,B.1,.||||||| K.7: 328245 AO.2: 277386  AU.14:  205493  X.45: 129039  Y.29: 125310  K.65: 101414  other: 3147978| 	 
+|Blind_Submodel|	Vehicle submodel (example: ACME Roadster LS, coded A.1.1).  For the base model--e.g. no suffix after the model name--submodel is coded as 0.|	2,739|	A.1.1,.,B.2.0,.,D.5.2,.|||||||AU.14.1: 148261 K.7.3: 139655 AU.58.0: 77481 AO.2.5: 67926 AO.2.13: 66457 K.7.1: 63079 other: 3752006|	   
+|Cat1	|Categorical vehicle variable|	11	|A,B,C,.,?|||||||A: 572074 B: 2858631 C: 75064 E: 283406 F: 67755 G: 457935|    
+|Cat2|	Categorical vehicle variable|	4	|A,B,C,.,?|||||||A: 891344 B:121250 C: 3302271|
+|Cat3|	Categorical vehicle variable|	7|	A,B,C,.,?||||||| A:2007717 B: 2156278 C: 89 D: 1998 E: 260 F: 148523|	   
+|Cat4	|Categorical vehicle variable|	4|	A,B,C,.,?	   |||||||A: 4145055 C: 169810|
+|Cat5|	Categorical vehicle variable|	4|	A,B,C,.,?||||||| A: 3804513 B: 52333 C: 458019|	   
+|Cat6|	Categorical vehicle variable|	7|	A,B,C,.,?	||||||| A: 286 B: 1934060 C: 890884 D: 999375 E: 384563 F: 105697|   
+|Cat7|	Categorical vehicle variable|	5|	A,B,C,.,?||||||| A: 761065 B: 162285 C: 3378427 D: 13088|
+|Cat8|	Categorical vehicle variable|	4|	A,B,C,.,?||||||| A: 2238788 B: 1824053 C: 252024|	   
+|Cat9|	Categorical vehicle variable|	2|	A,B,C,.,?||||||| A: 1806860 B: 2508005|	   
+|Cat10|	Categorical vehicle variable|	4|	A,B,C,.,?||||||| A: 2807036 B: 1299078 C: 208751|	   
+|Cat11|	Categorical vehicle variable|	7	|A,B,C,.,?	||||||| A: 2279692 B: 1041526 C: 361464 D: 105279 E: 268073 F: 258831|   
+|Cat12|	Categorical vehicle variable|	7|	A,B,C,.,?||||||| A: 869 B: 1426443 C: 1185201 D: 1157767 E: 393609 F: 150976|
+|OrdCat|	Ordered categorical vehicle variable|	8|	1,2,3,.,?|1.000|2.000|4.000|3.103|4.000|7.000||	   
+|Var1|	Continuous vehicle variable, mean 0 stdev 1| | |-3.09246|-0.56948|-0.32843|-0.29122|-0.09541|3.08644||	 	 	   
+|Var2|	Continuous vehicle variable, mean 0 stdev 1	 	 	  | | |-2.14757|-0.72970|-0.29742|-0.05289|0.39423|7.82942||
+|Var3|	Continuous vehicle variable, mean 0 stdev 1	| | | -2.4664|-0.6846|-0.3143|-0.2088|0.1948|2.0691||
+|Var4|	Continuous vehicle variable, mean 0 stdev 1| | |-2.16994|-0.69845|-0.27561|-0.08893|0.40094|7.94445||	 	 	   
+|Var5|	Continuous vehicle variable, mean 0 stdev 1| | |-5.0572|-0.6444|-0.1092|-0.1727|0.1942|2.8763||	|Var6|	Continuous vehicle variable, mean 0 stdev 1| | |-2.02925|-0.68876|-0.41739|-0.37134|-0.03958|2.85897||	 	 	   
+| Var7|	Continuous vehicle variable, mean 0 stdev 1| | |-2.2133|-0.8248|-0.6773|-0.5528|-0.5421|1.6819||	|Var8| 	Continuous vehicle variable, mean 0 stdev 1| | |-1.48480|-0.44392|-0.21912|0.08771|0.24143|46.72172||	 	 	   
+|NVCat|	Categorical non-vehicle variable|	15|	A,B,C,.|||||||M: 1861275 O: 1205736 N: 407912 L: 284602 J: 178823 E: 120624 other: 255893|	   
+|NVVar1|	Continuous non-vehicle variable, mean 0 stdev 1|||-0.23153|-0.23153|-0.23153|-0.02708|-0.23153|6.62711||	 	 	   
+|NVVar2|	Continuous non-vehicle variable, mean 0 stdev 1	|||-0.26612|-0.26612|-0.26612|-0.01003|-0.26612|8.88308|| 	 	   
+|NVVar3|	Continuous non-vehicle variable, mean 0 stdev 1	|||-0.27234|-0.27234|-0.27234|-0.04531|-0.27234|8.69114|| 	 	   
+|NVVar4	|Continuous non-vehicle variable, mean 0 stdev 1	 |||-0.251419|-0.251419|-0.251419|0.009567|-0.251419|6.388802||	 	 
+|Claim_Amount	|Non-negative real number, 99% zeros on the training set|||   
