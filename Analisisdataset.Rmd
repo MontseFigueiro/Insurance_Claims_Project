@@ -404,7 +404,46 @@ test_labels <- datacancer[470:569,1]
 test_pred <- knn(train=train,test=test,cl=train_labels,k=21)
 CrossTable(x=test_labels,y=test_pred,prop.chisq = FALSE)
 ```
-En este caso hemos clasificado el 98% de los casos correctamente, con respecto al 94% anterior.
+En este caso hemos clasificado el 98% de los casos correctamente, con respecto al 94% anterior. Pero donde antes teníamos 1 caso de Falso Negativo ahora tenemos 2.
 
 ##Alternativos valores de K
+
+* k=1
+```{r}
+test_pred_1 <- knn(train=train,test=test,cl=train_labels,k=1)
+CrossTable(x=test_labels,y=test_pred_1,prop.chisq = FALSE)
+```
+* k=5
+```{r}
+test_pred_5 <- knn(train=train,test=test,cl=train_labels,k=5)
+CrossTable(x=test_labels,y=test_pred_5,prop.chisq = FALSE)
+```
+* k=11
+```{r}
+test_pred_11 <- knn(train=train,test=test,cl=train_labels,k=11)
+CrossTable(x=test_labels,y=test_pred_11,prop.chisq = FALSE)
+```
+* k=15
+```{r}
+test_pred_15 <- knn(train=train,test=test,cl=train_labels,k=15)
+CrossTable(x=test_labels,y=test_pred_15,prop.chisq = FALSE)
+```
+* k=25
+```{r}
+test_pred_15 <- knn(train=train,test=test,cl=train_labels,k=15)
+CrossTable(x=test_labels,y=test_pred_15,prop.chisq = FALSE)
+```
+|K-value| Falsos Negativos | Falsos Positivos | Porcentaje Clasif.Incorrecta |
+|-------|------------------|------------------|------------------------------|
+|1|2|4|6%|
+|5|0|4|4%|
+|11|1|1|2%|
+|15|2|0|2%|
+|25|2|0|2%|
+
+##Summary
+
+Resumiendo KNN utiliza el cálculo de distancias para coger una nueva observación y colocarla en vecino más similar. Es sencillo y permite como en el ejemplo anterior clasificar correctamente el 98% de los datos.
+
+#Aprendizaje probabilistico - Clasificación Naive Bayes
 
