@@ -62,15 +62,71 @@ Decision Trees, Random Forests, Gradient Boosting Machines, Neural Networks and 
 Han sido borrados del Test dataset pero no del training dataset. Están como "?"
 
 
-
+##Lectura de Datos
 ```{}
 library(data.table)
 train <- fread("train_set.csv")
 test <- read.csv("test_set.csv")
 str(test)
-unique(test$Calendar_Year) 
-
+summary(train)
+dim(train)
+head(train)
 ```
+#problema de memoria
+library(pryr)
+
+```{r}
+memory.limit()
+object_size(train)
+memory.limit(size=16384)
+```
+##Muestra de Datos
+
+El fichero "Train" que contiene datos de 2005, 2006 y 2007 tiene 13.184.290 observaciones y 35 columnas. De los cuales 95.605 han tenido siniestro con daño corporal.
+```{r}
+positiveclaim <- train[train$Claim_Amount>0,]
+dim(positiveclaim)
+```
+
+
+Vamos a tomar una muestra del fichero "train" para trabajar los diferentes modelos y finalmente aplicarlo al fichero completo. Cojo las 5.000.000 primeras filas.
+
+```{r}
+train_sample <- train[1:5000000,]
+class(train_sample)
+train_sample <- as.data.frame(train_sample)
+```
+###Cambiamos los tipos de variables:
+
+Las categóricas pasan a Factor, al igual que los años. 
+
+```{r}
+library(plyr)
+train_sample[6:20] <- lapply(train_sample[6:20], as.factor) 
+train_sample$NVCat <- as.factor(train_sample$NVCat)
+train_sample$OrdCat <- as.integer(train_sample$OrdCat)
+train_sample$Model_Year <- as.factor(train_sample$Model_Year)
+train_sample$Calendar_Year <- as.factor(train_sample$Calendar_Year)
+str(train_sample)
+erroresordcat <- train_sample[train_sample$OrdCat=="NA",]
+dim(erroresordcat)
+#OrdCat tiene niveles del 1 al 7 y ?
+```
+
+
+Cuando el fichero ya está limpio lo divido en dos partes:
+
+- 4.000.000 observaciones "train"
+- 1.000.000 observaciones "test"
+
+#Clasificación K-vecinos (KNN)
+
+* Necesitamos normalizar los datos
+* El objetivo es clasificar los datos en "si" tienen daño corporal o "no" tiene daño corporal
+
+
+
+
 #problema de memoria
 library(pryr)
 
@@ -101,14 +157,6 @@ str(train_sample)
 
 ```
 
-#Cambiamos el tipo de variables, el año es mejor como factor?
-```{r}
-library(plyr)
-train_sample[6:20] <- lapply(train_sample[6:20], as.factor) 
-train_sample$NVCat <- as.factor(train_sample$NVCat)
-train_sample$OrdCat <- as.integer(train_sample$OrdCat)
-#OrdCat tiene niveles del 1 al 7 y ?
-```
 
 #Comprobacion filas duplicadas
 ```{r}
@@ -145,10 +193,3 @@ write.csv(train, file = "train_clean.csv")
 str(train)
 summary(train_sample$Blind_Make)
 
-#casos en los que el importe del siniestro es superior a 0
-```{r}
-claimpositive <- train_sample[train$Claim_Amount>0,]
-dim(claimpositive)
-```
-
-``
