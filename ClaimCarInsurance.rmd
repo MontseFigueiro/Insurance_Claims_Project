@@ -1,6 +1,6 @@
 ---
 title: "Claim Car Insurance"
-author: "Montse Figueiro"
+author: "Montse Figueiro & Aniana González"
 date: "6 de julio de 2016"
 output: html_document
 ---
@@ -59,7 +59,7 @@ Decision Trees, Random Forests, Gradient Boosting Machines, Neural Networks and 
 
 ##Tratamiento Missing values
 
-Han sido borrados del Test dataset pero no del training dataset. Están como "?"
+Han sido borrados del Test dataset pero no del training dataset. Están como "?". 
 
 
 ##Lectura de Datos
@@ -89,7 +89,7 @@ dim(positiveclaim)
 ```
 
 
-Vamos a tomar una muestra del fichero "train" para trabajar los diferentes modelos y finalmente aplicarlo al fichero completo. Cojo las 5.000.000 primeras filas.
+Vamos a tomar una muestra del fichero "train" para trabajar los diferentes modelos y finalmente aplicarlo al fichero completo. Cogemos las 5.000.000 primeras filas.
 
 ```{r}
 train_sample <- train[1:5000000,]
@@ -113,11 +113,12 @@ dim(erroresordcat)
 #OrdCat tiene niveles del 1 al 7 y ?
 ```
 
-
 Cuando el fichero ya está limpio lo divido en dos partes:
 
 - 4.000.000 observaciones "train"
 - 1.000.000 observaciones "test"
+
+
 
 #Clasificación K-vecinos (KNN)
 
