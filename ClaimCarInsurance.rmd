@@ -8,24 +8,68 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+##
+The goal of this competition is to better predict Bodily Injury Liability Insurance claim payments based on the characteristics of the insured customer's vehicle.
 
-You only need to download one format of each file.
-Each has the same contents but use different packaging methods.
 
-Each row contains one year's worth information for insured vehicles.  Since the goal of this competition is to improve the ability to use vehicle characteristics to accurately predict insurance claim payments, the response variable (dollar amount of claims experienced for that vehicle in that year) has been adjusted to control for known non-vehicle effects. Some non-vehicle characteristics (labeled as such in the data dictionary) are included in the set of independent variables.  It is expected that no "main effects" corresponding will be found for these non-vehicle variables, but there may be interesting interactions with the vehicle variables. 
+* Cada Fila contiene la información anual sobre el seguro de un vehículo.  
+* La variable "Claim_Amount" ha sido ajustada para tener en cuenta los efectos de las características no correspondientes al vehículo, pero pueden tener interacciones interesantes con las variables del vehículo.
+* "Calendar_Year" es el año en el que el vehículo fué asegurado.
+* "Household_ID" es la identificación del hogar, en un hogar puede haber más de un vehículo asegurado.
+* "Vehicle" es el número que identifica al vehículo, pero el mismo vehículo no tiene porque tener el mismo número en los diferentes años.
+* Tenemos para identifiar el vehículo Model_Year, Blind_Make (manufacturer), Blind_Model, Blind_Submodel.
+* El resto de columnas contienen características del vehículo así como, otras características asociadas a la poliza. 
+* Tenemos dos datasets:
+    + Training de 2005-2007 para construir el modelo
+    + Test de 2008-2009 sobre el que realizaremos las predicciones.
 
-Calendar_Year is the year that the vehicle was insured.  Household_ID is a household identification number that allows year-to-year tracking of each household. Since a customer may insure multiple vehicles in one household, there may be multiple vehicles associated with each household identification number. "Vehicle" identifies these vehicles (but the same "Vehicle" number may not apply to the same vehicle from year to year). You also have the vehicle's model year and a coded form of make (manufacturer), model, and submodel.  The remaining columns contain miscellaneous vehicle characteristics, as well as other characteristics associated with the insurance policy.  See the "data dictionary" (data_dictionary.txt) for additional information.
+##Objetivo del Estudio
 
-Our dataset naturally contained some missing values. Records containing missing values have been removed from the test data set but not from the training dataset. You can make use of the records with missing values, or completely ignore them if you wish. They are coded as "?".
+* Problema de Clasificación
 
-There are two datasets to download: training data and test data. You will use the training dataset to build your model, and will submit predictions for the test dataset. The training data has information from 2005-2007, while the test data has information from 2008 and 2009. Submissions should consist of a CSV file. Records from 2008 will be used to score the leaderboard, and records from 2009 will be used to determine the final winner.
+Determinar que vehículos asegurados tendrán siniestros con daño corporal en los años 2008-2009, para ello utilizaremos el training dataset que nos aporta la información correspondiente a los años 2005-2006-2007, el cual volveremos a dividir en dos partes Training y Test data set para poder contrastar los resultados de la clasificación. Por último aplicaremos el modelo al Test dataset para 2008-2009.
+
+    + K-vecinos (necesario normalizar)
+    + Arboles de decisión (no necesario normalizar)
+    + Bayes (Aprendizaje Probabilistico)
+    + Random Forest
+    + Validación: ROC, 
+
+* Problema de Regresión
+
+El objetivo del estudio es conseguir predecir en función de las características del vehículo los pagos por daño corporal ocasionados anualmente por cada vehículo.
+
+    + Random Forest Regresión.
+    + Previsión Datos numéricos - Métodos de Regresión
+        + GLM
+        + LM (PCA)
+        + SVM
+        + GBM
+    + Neutral Networks
+    
+* Validación: Caret, ROC (visualización), Cross-validation, jackknife
+
+Tipicamente en Seguros aplicamos los siguientes métodos:
+
+Decision Trees, Random Forests, Gradient Boosting Machines, Neural Networks and Support Vector Machines
+
+##Code Book Variables
+
+[Dictionary](https://kaggle2.blob.core.windows.net/competitions-data/kaggle/2509/dictionary.html?sv=2012-02-12&se=2016-09-11T09%3A28%3A10Z&sr=b&sp=r&sig=LDorwQLrH%2BUJeduG58UByqlaxlatNMpte4iJZLhM0V8%3D)
+
+##Tratamiento Missing values
+
+Han sido borrados del Test dataset pero no del training dataset. Están como "?"
+
+
 
 ```{}
 library(data.table)
 train <- fread("train_set.csv")
 test <- read.csv("test_set.csv")
 str(test)
-unique(test$Calendar_Year)  
+unique(test$Calendar_Year) 
+
 ```
 #problema de memoria
 library(pryr)
