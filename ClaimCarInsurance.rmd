@@ -93,16 +93,12 @@ train$NVCat <- as.factor(train$NVCat)
 train$OrdCat <- as.integer(train$OrdCat)
 train$Model_Year <- as.factor(train$Model_Year)
 train$Calendar_Year <- as.factor(train$Calendar_Year)
-str(train)
 ```
 Añadir columna clasificación:
 ```{r}
 train$classification <- ifelse(train$Claim_Amount==0,"0","1")
 train$classification <- as.factor(train$classification)
 ```
-
-erroresordcat <- train[train$OrdCat=="NA",]
-###OrdCat tiene niveles del 1 al 7 y ?
 
 
 ##Visualización de Datos
@@ -119,7 +115,6 @@ df
 slices <- df$Freq 
 lbls <-df$Var1
 pct <- df$percent
-num <- df$
 lbls <- paste("Año ",lbls, sep="")
 lbls <- paste(lbls, pct,sep=": ") # add percents to labels 
 lbls <- paste(lbls,"%",sep="") # ad % to labels 
@@ -136,6 +131,7 @@ gr2.a <- ggplot(train, aes(Cat1)) +
 gr2.a + scale_y_continuous(labels=percent) + xlab(NULL) + 
  ylab("% de tipos") + xlab("Tipos de Variable 1")+ggtitle("Distribución de las categorias") +  theme_bw()
 ```
+
 
 Tabla missing Values:
 ```{r}
@@ -167,6 +163,7 @@ Tabla_var_frecuentes$Clasevar <- clasevar$clasevar
 colnames(Tabla_var_frecuentes) <- c("Variable","Tipomasfrecuente","Observaciones","Clase_variable")
 Tabla_var_frecuentes <- Tabla_var_frecuentes[Tabla_var_frecuentes$Clase_variable=="factor",]
 Tabla_var_frecuentes$Porcentaje <- round((Tabla_var_frecuentes$Observaciones/nrow(train))*100,2)
+Tabla_var_frecuentes
 ```
 
 ##Tratamiento Missing values
@@ -175,6 +172,17 @@ Han sido borrados del Test dataset pero no del training dataset. Están como "?".
 
 
 ##Vehículos Duplicados
+```{r}
+Data_noId <- train
+Data_noId[,c("Row_ID","Household_ID","Vehicle","Calendar_Year")] <- NULL
+head(Data_noId)
+Data_noId$duplicated <- duplicated(Data_noId)
+Data_noId[duplicated(Data_noId), ]
+Data_noduplicados <- Data_noId[!duplicated(Data_noId), ]
+sum(Data_noduplicados$Claim_Amount)
+#Total 17.939.315 coincide con el total del fichero Train
+```
+
 
 ##Relaciona dos variables categóricas
 spineplot(train$Calendar_Year,train$Cat2)
