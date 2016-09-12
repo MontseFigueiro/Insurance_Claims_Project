@@ -70,7 +70,7 @@ summary(train)
 dim(train)
 head(train)
 ```
-#problema de memoria
+###problema de memoria
 library(pryr)
 
 ```{r}
@@ -102,7 +102,7 @@ train$classification <- as.factor(train$classification)
 ```
 
 erroresordcat <- train[train$OrdCat=="NA",]
-#OrdCat tiene niveles del 1 al 7 y ?
+###OrdCat tiene niveles del 1 al 7 y ?
 
 
 ##Visualización de Datos
@@ -176,7 +176,7 @@ Han sido borrados del Test dataset pero no del training dataset. Están como "?".
 
 ##Vehículos Duplicados
 
-#Relaciona dos variables categóricas
+##Relaciona dos variables categóricas
 spineplot(train$Calendar_Year,train$Cat2)
 spineplot(train$Calendar_Year,train$Cat3)
 spineplot(train$Calendar_Year,train$Cat4)
