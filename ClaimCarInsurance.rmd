@@ -57,9 +57,7 @@ Decision Trees, Random Forests, Gradient Boosting Machines, Neural Networks and 
 
 [Dictionary](https://kaggle2.blob.core.windows.net/competitions-data/kaggle/2509/dictionary.html?sv=2012-02-12&se=2016-09-11T09%3A28%3A10Z&sr=b&sp=r&sig=LDorwQLrH%2BUJeduG58UByqlaxlatNMpte4iJZLhM0V8%3D)
 
-##Tratamiento Missing values
 
-Han sido borrados del Test dataset pero no del training dataset. Están como "?". 
 
 
 ##Lectura de Datos
@@ -67,7 +65,7 @@ Han sido borrados del Test dataset pero no del training dataset. Están como "?".
 library(data.table)
 train <- fread("train_set.csv")
 test <- read.csv("test_set.csv")
-str(test)
+str(train)
 summary(train)
 dim(train)
 head(train)
@@ -77,9 +75,121 @@ library(pryr)
 
 ```{r}
 memory.limit()
-object_size(train)
 memory.limit(size=16384)
 ```
+
+###Cambiamos los tipos de variables:
+
+Las categóricas pasan a Factor, al igual que los años. 
+```{r}
+class(train)
+train <- as.data.frame(train)
+```
+
+```{r}
+library(plyr)
+train[6:20] <- lapply(train[6:20], as.factor) 
+train$NVCat <- as.factor(train$NVCat)
+train$OrdCat <- as.integer(train$OrdCat)
+train$Model_Year <- as.factor(train$Model_Year)
+train$Calendar_Year <- as.factor(train$Calendar_Year)
+str(train)
+```
+Añadir columna clasificación:
+```{r}
+train$classification <- ifelse(train$Claim_Amount==0,"0","1")
+train$classification <- as.factor(train$classification)
+```
+
+erroresordcat <- train[train$OrdCat=="NA",]
+#OrdCat tiene niveles del 1 al 7 y ?
+
+
+##Visualización de Datos
+
+Número de Pólizas por año
+```{r}
+count <- table(train$Calendar_Year)
+df <- data.frame(group=names(count),count)
+df$percent <-round((df$Freq/sum(df$Freq))*100,2)
+df <- df[-1]
+df
+```
+```{r}
+slices <- df$Freq 
+lbls <-df$Var1
+pct <- df$percent
+num <- df$
+lbls <- paste("Año ",lbls, sep="")
+lbls <- paste(lbls, pct,sep=": ") # add percents to labels 
+lbls <- paste(lbls,"%",sep="") # ad % to labels 
+pie(pct,labels = lbls, col=rainbow(length(lbls)),
+  	main="Desglose Pólizas con Siniestro por Año")
+```
+
+Gráfico Variables categóricas - distribución tipo de variable:
+```{r}
+library(scales) 
+gr2.a <- ggplot(train, aes(Cat1)) + 
+ geom_bar(aes(Cat1, (..count..)/sum(..count..)), width=0.5, fill = "grey") 
+
+gr2.a + scale_y_continuous(labels=percent) + xlab(NULL) + 
+ ylab("% de tipos") + xlab("Tipos de Variable 1")+ggtitle("Distribución de las categorias") +  theme_bw()
+```
+
+Tabla missing Values:
+```{r}
+train[train=="?"] <- NA
+Tabla_NAs <- as.data.frame(sapply(train, function(x) sum(is.na(x))))
+colnames(Tabla_NAs) <- c("NumNAs")
+obs_total <- nrow(train)
+Tabla_NAs$Porcentaje <- round((Tabla_NAs$NumNAs/nrow(train))*100,2)
+```
+Seleccionamos de la tabla solo los que tienen NAs:
+
+```{r}
+TablaNas_Positive <- Tabla_NAs[Tabla_NAs$NumNAs>0,]
+TablaNas_Positive
+```
+
+Tabla con Valores más frecuentes para cada Variable Categórica:
+```{r}
+values <- sapply(train,function(x) max(table(x)))
+values <- as.data.frame(values)
+nombres <- sapply(train,function(x) names(which.max(table(x))))
+nombresvar <- as.data.frame(nombres)
+clasevar <- sapply(train,function(x) class(x))
+clasevar <- as.data.frame(clasevar)
+Tabla_var_frecuentes <- as.data.frame(rownames(nombresvar))
+Tabla_var_frecuentes$Tipo <- nombresvar$nombres
+Tabla_var_frecuentes$Observaciones <- values$values
+Tabla_var_frecuentes$Clasevar <- clasevar$clasevar
+colnames(Tabla_var_frecuentes) <- c("Variable","Tipomasfrecuente","Observaciones","Clase_variable")
+Tabla_var_frecuentes <- Tabla_var_frecuentes[Tabla_var_frecuentes$Clase_variable=="factor",]
+Tabla_var_frecuentes$Porcentaje <- round((Tabla_var_frecuentes$Observaciones/nrow(train))*100,2)
+```
+
+##Tratamiento Missing values
+
+Han sido borrados del Test dataset pero no del training dataset. Están como "?". 
+
+
+##Vehículos Duplicados
+
+#Relaciona dos variables categóricas
+spineplot(train$Calendar_Year,train$Cat2)
+spineplot(train$Calendar_Year,train$Cat3)
+spineplot(train$Calendar_Year,train$Cat4)
+
+
+
+
+
+
+
+
+
+
 ##Muestra de Datos
 
 El fichero "Train" que contiene datos de 2005, 2006 y 2007 tiene 13.184.290 observaciones y 35 columnas. De los cuales 95.605 han tenido siniestro con daño corporal.
@@ -88,17 +198,14 @@ positiveclaim <- train[train$Claim_Amount>0,]
 dim(positiveclaim)
 ```
 
-
 Vamos a tomar una muestra del fichero "train" para trabajar los diferentes modelos y finalmente aplicarlo al fichero completo. Cogemos las 5.000.000 primeras filas.
 
 ```{r}
-train_sample <- train[1:5000000,]
+train_sample <- train[1:1000000,]
 class(train_sample)
 train_sample <- as.data.frame(train_sample)
 ```
-###Cambiamos los tipos de variables:
 
-Las categóricas pasan a Factor, al igual que los años. 
 
 ```{r}
 library(plyr)
@@ -113,15 +220,72 @@ dim(erroresordcat)
 #OrdCat tiene niveles del 1 al 7 y ?
 ```
 
+
+
 Cuando el fichero ya está limpio lo divido en dos partes:
 
-- 4.000.000 observaciones "train"
-- 1.000.000 observaciones "test"
+- 800.000 observaciones "train"
+- 200.000 observaciones "test"
 
+##KNN utilizando variables numéricas
 
+```{r}
+names(train_sample)
+cols <- c("Var1","Var2","Var3","Var4","Var5","Var6","Var7","Var8","NVVar1","NVVar2","NVVar3","NV
+Var4" )
+claims <- c("Claim_Amount")
+data_num <-train_sample[,cols]
+head(train)
+data_num_labels <- train$Claim_Amount[1:1000000]
+data_num_labels <- ifelse(train$Claim_Amount==0,"0","1")
+data_num_labels <- as.factor(data_num_labels)
+head(data_num_labels)
+train_set_labels <- data_num_labels[1:800000]
+test_set_labels <- data_num_labels[800001:1000000]
 
+head(train_set)
+train_set <-data_num[1:800000,] 
+test_set <- data_num[800001:1000000,]
+prediccion <- knn(train=train_set,test=test_set,cl=train_set_labels,k=1)
+head(test_set)
 #Clasificación K-vecinos (KNN)
 
+El algoritmo KNN requiere que todas las variables sean categóricas o continuas. Enel caso de tener de los dos tipos, las categóricas deben ser transformadas a numéricas antes de aplicar el algoritmo. En el caso de que las categóricas tengan más de dos categorías usaremos variables dummy.
+cor(train_sample)
+```{r}
+library(caret)
+train_sample$Cat1 <- predict(dummyVars(~ Cat1, data = train_sample), newdata = train_sample)
+train_sample$Cat1 <- predict(dummyVars(~ Cat1, data = train_sample), newdata = train_sample)
+train_sample$Cat1 <- predict(dummyVars(~ Cat1, data = train_sample), newdata = train_sample)
+train_sample$Cat1 <- predict(dummyVars(~ Cat1, data = train_sample), newdata = train_sample)
+train_sample$Cat1 <- predict(dummyVars(~ Cat1, data = train_sample), newdata = train_sample)
+train_sample$Cat1 <- predict(dummyVars(~ Cat1, data = train_sample), newdata = train_sample)
+train_sample$Cat1 <- predict(dummyVars(~ Cat1, data = train_sample), newdata = train_sample)
+train_sample$Cat1 <- predict(dummyVars(~ Cat1, data = train_sample), newdata = train_sample)
+train_sample$Cat1 <- predict(dummyVars(~ Cat1, data = train_sample), newdata = train_sample)
+head(train_sample)
+class(train_sample)
+
+pruebaknn <- train_sample[,c("Var1","Var2","Var3","Var4")]
+class(pruebaknn$Cat1)
+levels <- train_sample[,35]
+
+levels <- ifelse(levels==0,"0","1")
+levels <- as.factor(levels)
+unique(levels)
+count(levels)
+
+pruebaknn_train <- pruebaknn[1:4000000,]
+pruebaknn_test <- pruebaknn[4000001:5000000,]
+
+train_levels <- levels[1:4000000]
+test_levels <- levels[4000001:5000000]
+class(test_levels)
+pred <- knn(train=pruebaknn_train,test=pruebaknn_test,cl=train_levels,k=3,use.all = FALSE)
+header <- unlist(strsplit(colnames(dummies), '[.]'))[2 * (1:ncol(dummies))]
+Cat1 <- factor(dummies %*% 1:ncol(dummies), labels = header)
+```
+str(train_sample)
 * Necesitamos normalizar los datos
 * El objetivo es clasificar los datos en "si" tienen daño corporal o "no" tiene daño corporal
 
