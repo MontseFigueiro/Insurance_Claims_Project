@@ -70,6 +70,8 @@ summary(train)
 dim(train)
 head(train)
 ```
+
+
 ###problema de memoria
 library(pryr)
 
@@ -140,6 +142,7 @@ Tabla_NAs <- as.data.frame(sapply(train, function(x) sum(is.na(x))))
 colnames(Tabla_NAs) <- c("NumNAs")
 obs_total <- nrow(train)
 Tabla_NAs$Porcentaje <- round((Tabla_NAs$NumNAs/nrow(train))*100,2)
+Tabla_NAs
 ```
 Seleccionamos de la tabla solo los que tienen NAs:
 
@@ -169,22 +172,38 @@ Tabla_var_frecuentes
 ##Tratamiento Missing values
 
 Han sido borrados del Test dataset pero no del training dataset. Están como "?". 
+Tenemos casillas en blanco
+Hay 4 variables con más de 4 millones de NA's
+
+###Vamos a ordenar las columnas por missing value, para ver si existe algún patrón
 
 
-##Vehículos Duplicados
+##Eliminamos Vehículos Duplicados
+Para ello quitamos las variables Id (Row_ID,Vehicle,Calendar_Year). Dejamos Household_ID para tener algún identificador de la póliza (éste Id es igual para todos los vehiculos de esa casa)
 ```{r}
 Data_noId <- train
-Data_noId[,c("Row_ID","Household_ID","Vehicle","Calendar_Year")] <- NULL
-head(Data_noId)
-Data_noId$duplicated <- duplicated(Data_noId)
-Data_noId[duplicated(Data_noId), ]
-Data_noduplicados <- Data_noId[!duplicated(Data_noId), ]
+Data_noId[,c("Row_ID","Vehicle","Calendar_Year")] <- NULL
+Data_noduplicados <- Data_noId[!duplicated(Data_noId),]
+Data_duplicados <- Data_noId[duplicated(Data_noId),]
 sum(Data_noduplicados$Claim_Amount)
 #Total 17.939.315 coincide con el total del fichero Train
+anyDuplicated(Data_noduplicados)#0
+sum(Data_noduplicados)
+```
+Tenemos vehículos duplicados pero cuyas Cat10,Cat11 y Cat12 varian en los diferentes año.
+
+Missin Values sin duplicados:
+```{r}
+Tabla_NAs_noduplicados <- as.data.frame(sapply(Data_noduplicados, function(x) sum(is.na(x))))
+colnames(Tabla_NAs) <- c("NumNAs")
+obs_total <- nrow(train)
+Tabla_NAs$Porcentaje <- round((Tabla_NAs$NumNAs/nrow(train))*100,2)
+Tabla_NAsa
 ```
 
 
 ##Relaciona dos variables categóricas
+cor(train$Calendar_Year,train$)
 spineplot(train$Calendar_Year,train$Cat2)
 spineplot(train$Calendar_Year,train$Cat3)
 spineplot(train$Calendar_Year,train$Cat4)
