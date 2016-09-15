@@ -105,6 +105,7 @@ train$classification <- as.factor(train$classification)
 
 ##Visualización de Datos
 
+
 Número de Pólizas por año
 ```{r}
 count <- table(train$Calendar_Year)
@@ -175,7 +176,64 @@ Han sido borrados del Test dataset pero no del training dataset. Están como "?".
 Tenemos casillas en blanco
 Hay 4 variables con más de 4 millones de NA's
 
+Contamos los casos completos (no tienen ningún NA) y los casos incompletos (tienen algún NA)
+```{r}
+sum(complete.cases(train)) # Count of complete cases in a data frame named 'data'
+sum(!complete.cases(train)) # Count of incomplete cases
+```
+
+Sumamos cuantos NA tiene cada observación:
+```{r}
+train$NAS <- rowSums(is.na(train))
+train$NAS <- as.factor(train$NAS)
+freq_NA_row <- as.data.frame(summary(train$NAS))
+freq_NA_row
+```
+3706301 casos no tienen NA y 3114961 tienen 1 NA.
+
+```{r}
+
+casoscon1NA <- train[train$NAS==1,]
+Tabla1NAs <- as.data.frame(sapply(casoscon1NA, function(x) sum(is.na(x))))
+colnames(Tabla1NAs) <- "1NA"
+#Tenemos 2255420 en Cat2 y 849145 en Cat7
+Tabla1NAs
+```
+```{r}
+casoscon2NA <- train[train$NAS==2,]
+Tabla2NAs <- as.data.frame(sapply(casoscon2NA, function(x) sum(is.na(x))))
+colnames(Tabla2NAs) <- "2NA"
+Tabla1NAs$`2NA` <- Tabla2NAs$`2NA`
+```
+```{r}
+casoscon3NA <- train[train$NAS==3,]
+dim(casoscon3NA)
+Tabla3NAs <- as.data.frame(sapply(casoscon3NA, function(x) sum(is.na(x))))
+colnames(Tabla3NAs) <- "3NA"
+Tabla1NAs$`3NA` <- Tabla3NAs$`3NA`
+```
+
+Número total de casos con daños corporal según el número de missing values
+```{r}
+head(train)
+columnas <- c("Household_ID","Claim_Amount","classification","NAS")
+Bd_dañocorporal <- train[,columnas]
+Bd_dañocorporal$classification <- as.numeric(Bd_dañocorporal$classification-1)
+NA_daño <- aggregate(cbind(Claim_Amount, classification)~NAS, data=Bd_dañocorporal, sum, na.rm=TRUE)
+NA_daño$Claim_Amount <-format(NA_daño$Claim_Amount, scientific = FALSE)
+NA_daño
+```
+
+¿que hacemos con los casos que tienen más de 5 Na's?
+
+Tratamiento NA's posibles:
+
+- Eliminación filas con 8 NA's.
+
 ###Vamos a ordenar las columnas por missing value, para ver si existe algún patrón
+
+newdata <- train[is.na(train$Cat1),]
+
 
 
 ##Eliminamos Vehículos Duplicados
@@ -192,29 +250,12 @@ sum(Data_noduplicados)
 ```
 Tenemos vehículos duplicados pero cuyas Cat10,Cat11 y Cat12 varian en los diferentes año.
 
-Missin Values sin duplicados:
-```{r}
-Tabla_NAs_noduplicados <- as.data.frame(sapply(Data_noduplicados, function(x) sum(is.na(x))))
-colnames(Tabla_NAs) <- c("NumNAs")
-obs_total <- nrow(train)
-Tabla_NAs$Porcentaje <- round((Tabla_NAs$NumNAs/nrow(train))*100,2)
-Tabla_NAsa
-```
-
 
 ##Relaciona dos variables categóricas
 cor(train$Calendar_Year,train$)
 spineplot(train$Calendar_Year,train$Cat2)
 spineplot(train$Calendar_Year,train$Cat3)
 spineplot(train$Calendar_Year,train$Cat4)
-
-
-
-
-
-
-
-
 
 
 ##Muestra de Datos
@@ -228,9 +269,10 @@ dim(positiveclaim)
 Vamos a tomar una muestra del fichero "train" para trabajar los diferentes modelos y finalmente aplicarlo al fichero completo. Cogemos las 5.000.000 primeras filas.
 
 ```{r}
-train_sample <- train[1:1000000,]
+train_sample <- train[1:100000,]
 class(train_sample)
 train_sample <- as.data.frame(train_sample)
+str(train_sample)
 ```
 
 
@@ -241,40 +283,43 @@ train_sample$NVCat <- as.factor(train_sample$NVCat)
 train_sample$OrdCat <- as.integer(train_sample$OrdCat)
 train_sample$Model_Year <- as.factor(train_sample$Model_Year)
 train_sample$Calendar_Year <- as.factor(train_sample$Calendar_Year)
-str(train_sample)
-erroresordcat <- train_sample[train_sample$OrdCat=="NA",]
-dim(erroresordcat)
-#OrdCat tiene niveles del 1 al 7 y ?
 ```
 
 
 
 Cuando el fichero ya está limpio lo divido en dos partes:
 
-- 800.000 observaciones "train"
-- 200.000 observaciones "test"
+- 80000 observaciones "train"
+- 20000 observaciones "test"
 
 ##KNN utilizando variables numéricas
 
 ```{r}
+summary(train)
 names(train_sample)
-cols <- c("Var1","Var2","Var3","Var4","Var5","Var6","Var7","Var8","NVVar1","NVVar2","NVVar3","NV
-Var4" )
-claims <- c("Claim_Amount")
+cols <- c("Cat8","Var1","Var2","Var3","Var4","Var5","Var6","Var7","Var8")
+claims <- c("classification")
 data_num <-train_sample[,cols]
-head(train)
-data_num_labels <- train$Claim_Amount[1:1000000]
+head(data_num)
+data_num_labels <- train$Claim_Amount[1:100000]
 data_num_labels <- ifelse(train$Claim_Amount==0,"0","1")
 data_num_labels <- as.factor(data_num_labels)
-head(data_num_labels)
-train_set_labels <- data_num_labels[1:800000]
-test_set_labels <- data_num_labels[800001:1000000]
+train_set_labels <- data_num_labels[1:80000]
+test_set_labels <- data_num_labels[80001:100000]
+library(class)
+train_set <-data_num[1:80000,] 
+test_set <- data_num[80001:100000,]
+summary(train_set)
+normalize <- function(x){return ((x-min(x))/(max(x)-min(x)))}
+train_set_norm <- as.data.frame(lapply(train_set,normalize))
+test_set_norm <- as.data.frame(lapply(test_set,normalize))
+test_set[is.na(test_set$Cat8),] <- "A"
+train_set[is.na(train_set$Cat8),] <- "A"
+summary(test_set$Cat8)
 
-head(train_set)
-train_set <-data_num[1:800000,] 
-test_set <- data_num[800001:1000000,]
-prediccion <- knn(train=train_set,test=test_set,cl=train_set_labels,k=1)
-head(test_set)
+prediccion <- knn(train=train_set,test=test_set,cl=train_set_labels,k=15)
+```
+
 #Clasificación K-vecinos (KNN)
 
 El algoritmo KNN requiere que todas las variables sean categóricas o continuas. Enel caso de tener de los dos tipos, las categóricas deben ser transformadas a numéricas antes de aplicar el algoritmo. En el caso de que las categóricas tengan más de dos categorías usaremos variables dummy.
