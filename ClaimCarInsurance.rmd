@@ -18,7 +18,8 @@ The goal of this competition is to better predict Bodily Injury Liability Insura
 * "Household_ID" es la identificación del hogar, en un hogar puede haber más de un vehículo asegurado.
 * "Vehicle" es el número que identifica al vehículo, pero el mismo vehículo no tiene porque tener el mismo número en los diferentes años.
 * Tenemos para identifiar el vehículo Model_Year, Blind_Make (manufacturer), Blind_Model, Blind_Submodel.
-* El resto de columnas contienen características del vehículo así como, otras características asociadas a la poliza. 
+* El resto de columnas contienen características del vehículo así como, otras características asociadas a la poliza.
+* Las variables numéricas han sido normalizadas, tienen media 0 y desviación standar 1.
 * Tenemos dos datasets:
     + Training de 2005-2007 para construir el modelo
     + Test de 2008-2009 sobre el que realizaremos las predicciones.
@@ -102,7 +103,6 @@ train$classification <- ifelse(train$Claim_Amount==0,"0","1")
 train$classification <- as.factor(train$classification)
 ```
 
-
 ##Visualización de Datos
 
 
@@ -114,6 +114,7 @@ df$percent <-round((df$Freq/sum(df$Freq))*100,2)
 df <- df[-1]
 df
 ```
+Pie Chart:
 ```{r}
 slices <- df$Freq 
 lbls <-df$Var1
@@ -173,7 +174,7 @@ Tabla_var_frecuentes
 ##Tratamiento Missing values
 
 Han sido borrados del Test dataset pero no del training dataset. Están como "?". 
-Tenemos casillas en blanco
+Tenemos casillas en blanco???
 Hay 4 variables con más de 4 millones de NA's
 
 Contamos los casos completos (no tienen ningún NA) y los casos incompletos (tienen algún NA)
@@ -207,13 +208,44 @@ Tabla1NAs$`2NA` <- Tabla2NAs$`2NA`
 ```
 ```{r}
 casoscon3NA <- train[train$NAS==3,]
-dim(casoscon3NA)
 Tabla3NAs <- as.data.frame(sapply(casoscon3NA, function(x) sum(is.na(x))))
 colnames(Tabla3NAs) <- "3NA"
 Tabla1NAs$`3NA` <- Tabla3NAs$`3NA`
 ```
+```{r}
+casoscon4NA <- train[train$NAS==4,]
+Tabla4NAs <- as.data.frame(sapply(casoscon4NA, function(x) sum(is.na(x))))
+colnames(Tabla4NAs) <- "4NA"
+Tabla1NAs$`4NA` <- Tabla4NAs$`4NA`
+Tabla1NAs
+```
+
+Hay 8431 observaciones con 48 siniestros con daño corporal a los que les falta Blind_Make, Blind_Model y Blind_Submodel:
+```{r}
+obs_without_model <- train[is.na(train$Blind_Submodel),]
+dim(obs_without_model)
+```
+Cuantos modelos de vehículos diferentes tenemos en la base de datos:
+```{r}
+cols_model <- c("Model_Year","Blind_Make","Blind_Model","Blind_Submodel","Cat1","Cat3","Cat4","Cat5","Cat6","Cat8","Cat9","Cat10","Cat11")
+head(train)
+modelcar <- train[,cols_model]
+modelcar$count <- 1
+Difmodelcar <- aggregate(count~. ,modelcar,sum)
+head(Difmodelcar[order(-Difmodelcar$count),])
+```
+
+Variable "OrdCat" con Missing Value:
+
+```{r}
+NAOrdCat <- train[is.na(train$OrdCat),]
+head(NAOrdCat)
+dim(NAOrdCat)
+
+```
 
 Número total de casos con daños corporal según el número de missing values
+
 ```{r}
 head(train)
 columnas <- c("Household_ID","Claim_Amount","classification","NAS")
@@ -223,6 +255,16 @@ NA_daño <- aggregate(cbind(Claim_Amount, classification)~NAS, data=Bd_dañocorpor
 NA_daño$Claim_Amount <-format(NA_daño$Claim_Amount, scientific = FALSE)
 NA_daño
 ```
+
+Las 4 últimas variables no son variables del vehículo, con lo que se corresponden con variables de la póliza, podemos analizar en que casos la póliza ha tenido cobertura para daño corporal.
+```{r}
+var_polizas <- 
+
+
+
+
+
+
 
 ¿que hacemos con los casos que tienen más de 5 Na's?
 
