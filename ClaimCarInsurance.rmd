@@ -78,7 +78,7 @@ library(pryr)
 
 ```{r}
 memory.limit()
-memory.limit(size=16384)
+memory.limit(size=20000)
 ```
 
 ###Cambiamos los tipos de variables:
@@ -102,7 +102,14 @@ Añadir columna clasificación:
 train$classification <- ifelse(train$Claim_Amount==0,"0","1")
 train$classification <- as.factor(train$classification)
 ```
+##Comprobación de datos normalizados en variables numéricas (nosotros no hemos realizado la normalización pero tenemos que conocer que ha sido hecha):
 
+```{r}
+var_col <- c("Var1","Var2","Var3","Var4","Var5","Var6","Var7","Var8","NVVar1","NVVar2","NVVar3","NVVar4")
+var_num <- train[,var_col]
+round(sapply(var_num,function(x) mean(x)),0)
+round(sapply(var_num,function(x) sd(x)),0)
+```
 ##Visualización de Datos
 
 
@@ -227,7 +234,7 @@ dim(obs_without_model)
 ```
 Cuantos modelos de vehículos diferentes tenemos en la base de datos:
 ```{r}
-cols_model <- c("Model_Year","Blind_Make","Blind_Model","Blind_Submodel","Cat1","Cat3","Cat4","Cat5","Cat6","Cat8","Cat9","Cat10","Cat11")
+cols_model <- c("Model_Year","Blind_Make","Blind_Model","Blind_Submodel","Cat1","Cat3","Cat4","Cat5","Cat6","Cat8","Cat9","Cat10","Cat11","")
 head(train)
 modelcar <- train[,cols_model]
 modelcar$count <- 1
@@ -258,13 +265,31 @@ NA_daño
 
 Las 4 últimas variables no son variables del vehículo, con lo que se corresponden con variables de la póliza, podemos analizar en que casos la póliza ha tenido cobertura para daño corporal.
 ```{r}
-var_polizas <- 
+claim_poliza <- aggregate(Claim_Amount ~ NVCat + NVVar1 + NVVar2 + NVVar3 + NVVar4, data = train, FUN = length)
+head(claim_poliza[order(-claim_poliza$Claim_Amount),])
+dim(claim_poliza)
+claim_poliza_amount <- aggregate(Claim_Amount ~ NVCat + NVVar1 + NVVar2 + NVVar3 + NVVar4, data = train, FUN = sum)
+head(claim_poliza_amount[order(-claim_poliza_amount$Claim_Amount),])
+claim_poliza_class <- aggregate(Claim_Amount ~ classification + NVCat + NVVar1 + NVVar2 + NVVar3 + NVVar4, data = train, FUN = length)
+head(claim_poliza_class[order(-claim_poliza_class$Claim_Amount),])
 
+```
 
+##Visualización con VIM
 
-
-
-
+```{r}
+install.packages("VIM")
+library(VIM)
+cols <- rownames(TablaNas_Positive)
+cols_with_NA <- train[,cols]
+aggr(cols_with_NA,numbers=TRUE,prop=FALSE)
+scattmatrixMiss(sleep, interactive = F, highlight = c("Sleep"))
+```
+##Encontrar patrones de los Missing Values
+```{r}
+install.packages("mice")
+library(mice)
+```
 
 ¿que hacemos con los casos que tienen más de 5 Na's?
 
