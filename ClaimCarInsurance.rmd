@@ -64,8 +64,7 @@ Decision Trees, Random Forests, Gradient Boosting Machines, Neural Networks and 
 ##Lectura de Datos
 ```{}
 library(data.table)
-train <- fread("train_set.csv")
-test <- read.csv("test_set.csv")
+train <- fread("train_set.csv")test <- read.csv("test_set.csv")
 str(train)
 summary(train)
 ```
@@ -92,14 +91,32 @@ library(plyr)
 train[6:20] <- lapply(train[6:20], as.factor) 
 train$NVCat <- as.factor(train$NVCat)
 train$OrdCat <- as.factor(train$OrdCat)
+str(train)
+```
+Podemos prescindir de las variables "Blind_Make" y "Blind_Model" porque están incluidas dentro de "Blind_Submodel":
+
+```{r}
+train$make <- lapply(strsplit(as.character(train$Blind_Submodel), "\\."), "[", 2)
+agregadosubmodelo <- aggregate(Blind_Submodel~Blind_Submodel+Cat1+Cat2+Cat3+Cat4+Cat5+Cat6+Cat7+Cat8+Cat9,train,length, na.action = na.omit)
+
 ```
 
-¿Los años como factor?
-train$Model_Year <- as.integer(train$Model_Year)
-train$Calendar_Year <- as.integer(train$Calendar_Year)
-
-
+Tenemos el año de la póliza y el año del vehículo, hemos comprobado que ninguna de las variables numérica se corresponde con la antigûedad del coche pero podemos calcularla y puede ser un dato muy interesante:
+```{r}
+train$EdadVehiculo <- (train$Calendar_Year-train$Model_Year)
 ```
+¿normalizamos la edadvehiculo?
+
+Vemos que hay valores negativos en la edad del vehículo, es decir que si el año de la póliza es 2005 el año del modelo es 2006
+```{r}
+edad_negativa <- train[train$EdadVehiculo<0,]
+summary(train$EdadVehiculo)
+dim(edad_negativa)
+pruebasubmodel <- train[train$Blind_Submodel=="K.2.4",]
+```
+Tenemos 155.991 coches con edades negativas,las vamos a dejar a 0 porque no tiene lógica 
+```
+
 Añadir columna clasificación:
 ```{r}
 train$classification <- ifelse(train$Claim_Amount==0,"0","1")
@@ -145,17 +162,6 @@ gr2.a <- ggplot(train, aes(Cat1)) +
 gr2.a + scale_y_continuous(labels=percent) + xlab(NULL) + 
  ylab("% de tipos") + xlab("Tipos de Variable 1")+ggtitle("Distribución de las categorias") +  theme_bw()
 ```
-##Variables Años
-A partir del año de la póliza y del año del vehículo podemos extraer la edad del mismo como una variable adicional.
-
-train$añocoche <- ifelse(train[,5]>train[,4],1,0)
-sum(train$añocoche)
-head(train[train$añocoche==1,])
-
-edad_coche <-((train[,4]-train[,5]))
-mean <- mean(edad_coche)
-sd <- sd(edad_coche)
-norm <- (edad_coche - mean)/sd
 
 ##Visualización e imputación de NA's
 ```{r}
@@ -223,7 +229,6 @@ freq_NA_row
 3706301 casos no tienen NA y 3114961 tienen 1 NA.
 
 ```{r}
-
 casoscon1NA <- train[train$NAS==1,]
 Tabla1NAs <- as.data.frame(sapply(casoscon1NA, function(x) sum(is.na(x))))
 colnames(Tabla1NAs) <- "1NA"
@@ -264,7 +269,7 @@ modelcar$count <- 1
 Difmodelcar <- aggregate(count~. ,modelcar,sum)
 head(Difmodelcar[order(-Difmodelcar$count),])
 ```
-
+summary(train$Row_ID)
 
 Número total de casos con daños corporal según el número de missing values
 
@@ -318,15 +323,32 @@ muestra <- train_sin_id[1:10000,]
 patrones_mice <- md.pattern(muestra)
 ```
 
-###Imputacción de los Missing Value con MICE
+##Imputación de los Missing Value con MICE
+
+Tenemos 8431 observaciones que tienen missing values en las variables "Blind_Make","Blind_Model" y "Blind_Submodel", para estas variables el número de niveles es muy elevado. Como máximo las variables pueden tener 50 categorías diferentes. Vamos a realizar 3 operaciones para conseguir implementar los missing values:
 
 ```{r}
-train_mice <- train[,9:35]
-muestra <- train_mice[1:10000,]
+length(unique(train$Blind_Make))#75 levels
+length(unique(train$Blind_Model))#1303 levels
+length(unique(train$Blind_Submodel))#2740 levels
+```
 
-head(muestra)
-imp <- mice(muestra, m=5,method= "polyreg", seed = 1234)
-train$OrdCat <- as.factor(train$OrdCat)
+* Caso A: Utilizar toda la base de datos dejando en estas tres variables como "?" para que no lo detecte como missing value, pero teniendo en cuenta estas tres columnas para el resto de las observaciones.
+* Caso B: Utilizar toda la base de datos quitando estas tres variables para la implementación de los missing values.
+* Caso C: Quitar estas 8431 observaciones y realizar la implementación con el resto de las variables.
+
+##Caso A:
+
+```{r}
+train[is.na(train$Blind_Make)] <- "?"
+train[is.na(train$Blind_Model)] <- "?"
+train[is.na(train$Blind_Submodel)] <- "?"
+
+cols <- c("Calendar_Year","Model_Year","Blind_Make","Blind_Model","Blind_Submodel","Cat1","Cat2","Cat3","Cat4","Cat5","Cat6","Cat7","Cat8","Cat9","Cat10","Cat11","Cat12","OrdCat","Var1","Var2","Var3","Var4","Var5","Var6","Var7","Var8","NVCat","NVVar1","NVVar2","NVVar3","NVVar","Claim_Amount")
+train_mice_A <- train[,4:35]
+muestra_A <- train_mice_A[1:100000,]
+imp <- mice(muestra_A, m=10,method= "polyreg", seed = 1234)
+
 
 ```
 
@@ -334,13 +356,9 @@ train$OrdCat <- as.factor(train$OrdCat)
 Para ello quitamos las variables Id (Row_ID,Vehicle,Calendar_Year). Dejamos Household_ID para tener algún identificador de la póliza (éste Id es igual para todos los vehiculos de esa casa)
 ```{r}
 Data_noId <- train
-Data_noId[,c("Row_ID","Vehicle","Calendar_Year")] <- NULL
-Data_noduplicados <- Data_noId[!duplicated(Data_noId),]
-Data_duplicados <- Data_noId[duplicated(Data_noId),]
-sum(Data_noduplicados$Claim_Amount)
-#Total 17.939.315 coincide con el total del fichero Train
-anyDuplicated(Data_noduplicados)#0
-sum(Data_noduplicados)
+Data_noId[,c("Row_ID","Household_ID","Vehicle","Calendar_Year","EdadVehiculo")] <- NULL
+dim(Data_noId)
+
 ```
 Tenemos vehículos duplicados pero cuyas Cat10,Cat11 y Cat12 varian en los diferentes año.
 
