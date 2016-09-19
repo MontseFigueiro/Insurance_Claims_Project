@@ -68,17 +68,15 @@ train <- fread("train_set.csv")
 test <- read.csv("test_set.csv")
 str(train)
 summary(train)
-dim(train)
-head(train)
 ```
-str(test)
+
 
 ###problema de memoria
 library(pryr)
 
 ```{r}
 memory.limit()
-memory.limit(size=30960)
+memory.limit(size=45960)
 ```
 
 ###Cambiamos los tipos de variables:
@@ -93,9 +91,14 @@ train <- as.data.frame(train)
 library(plyr)
 train[6:20] <- lapply(train[6:20], as.factor) 
 train$NVCat <- as.factor(train$NVCat)
-train$OrdCat <- as.integer(train$OrdCat)
+train$OrdCat <- as.factor(train$OrdCat)
+```
+
+¿Los años como factor?
 train$Model_Year <- as.integer(train$Model_Year)
 train$Calendar_Year <- as.integer(train$Calendar_Year)
+
+
 ```
 Añadir columna clasificación:
 ```{r}
@@ -142,11 +145,31 @@ gr2.a <- ggplot(train, aes(Cat1)) +
 gr2.a + scale_y_continuous(labels=percent) + xlab(NULL) + 
  ylab("% de tipos") + xlab("Tipos de Variable 1")+ggtitle("Distribución de las categorias") +  theme_bw()
 ```
+##Variables Años
+A partir del año de la póliza y del año del vehículo podemos extraer la edad del mismo como una variable adicional.
 
+train$añocoche <- ifelse(train[,5]>train[,4],1,0)
+sum(train$añocoche)
+head(train[train$añocoche==1,])
 
-Tabla missing Values:
+edad_coche <-((train[,4]-train[,5]))
+mean <- mean(edad_coche)
+sd <- sd(edad_coche)
+norm <- (edad_coche - mean)/sd
+
+##Visualización e imputación de NA's
+```{r}
+library(VIM)
+library(mice)
+```
+
+Sustituimos los "?" por NA:
 ```{r}
 train[train=="?"] <- NA
+```
+
+Tabla resumen Missing Values por Variable:
+```{r}
 Tabla_NAs <- as.data.frame(sapply(train, function(x) sum(is.na(x))))
 colnames(Tabla_NAs) <- c("NumNAs")
 obs_total <- nrow(train)
@@ -228,6 +251,7 @@ Tabla1NAs
 ```
 
 Hay 8431 observaciones con 48 siniestros con daño corporal a los que les falta Blind_Make, Blind_Model y Blind_Submodel:
+
 ```{r}
 obs_without_model <- train[is.na(train$Blind_Submodel),]
 dim(obs_without_model)
@@ -235,21 +259,12 @@ dim(obs_without_model)
 Cuantos modelos de vehículos diferentes tenemos en la base de datos:
 ```{r}
 cols_model <- c("Model_Year","Blind_Make","Blind_Model","Blind_Submodel","Cat1","Cat3","Cat4","Cat5","Cat6","Cat8","Cat9","Cat10","Cat11","")
-head(train)
 modelcar <- train[,cols_model]
 modelcar$count <- 1
 Difmodelcar <- aggregate(count~. ,modelcar,sum)
 head(Difmodelcar[order(-Difmodelcar$count),])
 ```
 
-Variable "OrdCat" con Missing Value:
-
-```{r}
-NAOrdCat <- train[is.na(train$OrdCat),]
-head(NAOrdCat)
-dim(NAOrdCat)
-
-```
 
 Número total de casos con daños corporal según el número de missing values
 
@@ -275,42 +290,45 @@ head(claim_poliza_class[order(-claim_poliza_class$Claim_Amount),])
 
 ```
 
-##Visualización con VIM
-Correlación entre las variables:
-```{r}
-train_variables <- train[,5:34]
-head(train_variables)
-library(polycor)
-hetcor(train_variables)
-```
+##Visualización con VIM de las variables con NA:
 
 ```{r}
-install.packages("VIM")
-library(VIM)
 cols <- rownames(TablaNas_Positive)
 cols_with_NA <- train[,cols]
-Graph_NA <- aggr(cols_with_NA,numbers=TRUE,prop=FALSE)
+head(cols_with_NA)
+```
+```{r}
+jpeg("Missing_Pattern.jpeg")
+train_aggr = aggr(cols_with_NA, numbers=TRUE, sortVars=TRUE, labels=names(cols_with_NA), cex.axis=.7, gap=3, ylab=c("Proportion of missingness","Missingness Pattern"))
+dev.off()
+```
+Visualización solo de los que tienen Claim_Amount>0:
+```{r}
+positive_claims <- train[train$Claim_Amount>0,]
+jpeg("Missing_Pattern_with_claim.jpeg")
+train_aggr_claim = aggr(positive_claims, numbers=TRUE, sortVars=TRUE, labels=names(cols_with_NA), cex.axis=.7, gap=3, ylab=c("Proportion of missingness","Missingness Pattern"))
+dev.off()
 ```
 ##Encontrar patrones de los Missing Values con "mice"
+
+
 ```{r}
-install.packages("mice")
-library(mice)
-muestra
-patrones_mice <- md.pattern(train)
-tempData <- mice(train,m=5,maxit=50,meth='pmm',seed=500)
+train_sin_id <- train[,4:35]
+muestra <- train_sin_id[1:10000,]
+patrones_mice <- md.pattern(muestra)
 ```
 
-¿que hacemos con los casos que tienen más de 5 Na's?
+###Imputacción de los Missing Value con MICE
 
-Tratamiento NA's posibles:
+```{r}
+train_mice <- train[,9:35]
+muestra <- train_mice[1:10000,]
 
-- Eliminación filas con 8 NA's.
+head(muestra)
+imp <- mice(muestra, m=5,method= "polyreg", seed = 1234)
+train$OrdCat <- as.factor(train$OrdCat)
 
-###Vamos a ordenar las columnas por missing value, para ver si existe algún patrón
-
-newdata <- train[is.na(train$Cat1),]
-
-
+```
 
 ##Eliminamos Vehículos Duplicados
 Para ello quitamos las variables Id (Row_ID,Vehicle,Calendar_Year). Dejamos Household_ID para tener algún identificador de la póliza (éste Id es igual para todos los vehiculos de esa casa)
@@ -325,6 +343,14 @@ anyDuplicated(Data_noduplicados)#0
 sum(Data_noduplicados)
 ```
 Tenemos vehículos duplicados pero cuyas Cat10,Cat11 y Cat12 varian en los diferentes año.
+
+Correlación entre las variables:
+```{r}
+train_variables <- train[,5:34]
+head(train_variables)
+library(polycor)
+hetcor(train_variables)
+```
 
 
 ##Relaciona dos variables categóricas
