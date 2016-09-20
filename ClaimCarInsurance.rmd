@@ -64,11 +64,11 @@ Decision Trees, Random Forests, Gradient Boosting Machines, Neural Networks and 
 ##Lectura de Datos
 ```{}
 library(data.table)
-train <- fread("train_set.csv")test <- read.csv("test_set.csv")
+train <- fread("train_set.csv")
+test <- read.csv("test_set.csv")
 str(train)
 summary(train)
 ```
-
 
 ###problema de memoria
 library(pryr)
@@ -80,7 +80,7 @@ memory.limit(size=45960)
 
 ###Cambiamos los tipos de variables:
 
-Las categóricas pasan a Factor, al igual que los años. 
+Las categóricas pasan a Factor: 
 ```{r}
 class(train)
 train <- as.data.frame(train)
@@ -91,78 +91,41 @@ library(plyr)
 train[6:20] <- lapply(train[6:20], as.factor) 
 train$NVCat <- as.factor(train$NVCat)
 train$OrdCat <- as.factor(train$OrdCat)
-str(train)
-```
-Podemos prescindir de las variables "Blind_Make" y "Blind_Model" porque están incluidas dentro de "Blind_Submodel":
-
-```{r}
-train$make <- lapply(strsplit(as.character(train$Blind_Submodel), "\\."), "[", 2)
-agregadosubmodelo <- aggregate(Blind_Submodel~Blind_Submodel+Cat1+Cat2+Cat3+Cat4+Cat5+Cat6+Cat7+Cat8+Cat9,train,length, na.action = na.omit)
-
 ```
 
 Tenemos el año de la póliza y el año del vehículo, hemos comprobado que ninguna de las variables numérica se corresponde con la antigûedad del coche pero podemos calcularla y puede ser un dato muy interesante:
+
 ```{r}
-train$EdadVehiculo <- (train$Calendar_Year-train$Model_Year)
+train$EdadVehiculo <- as.numeric(train$Calendar_Year-train$Model_Year)
 ```
 ¿normalizamos la edadvehiculo?
 
-Vemos que hay valores negativos en la edad del vehículo, es decir que si el año de la póliza es 2005 el año del modelo es 2006
+Tenemos valores negativos en la edad del vehículo, es decir que si el año de la póliza es 2005 el año del modelo es 2006:
+Tenemos 155.991 coches con edades negativas,las vamos a dejar a 0 porque no tiene lógica 
+
 ```{r}
 edad_negativa <- train[train$EdadVehiculo<0,]
 summary(train$EdadVehiculo)
-dim(edad_negativa)
+train$EdadVehiculo <- ifelse(train$EdadVehiculo<0,0,train$EdadVehiculo)
+```
+
+
+Podemos prescindir de las variables "Blind_Make" y "Blind_Model" porque están incluidas dentro de "Blind_Submodel", hemos comprobado que Blind_Submodel incluye esas variables:
+```{r}
 pruebasubmodel <- train[train$Blind_Submodel=="K.2.4",]
-```
-Tenemos 155.991 coches con edades negativas,las vamos a dejar a 0 porque no tiene lógica 
-```
-
-Añadir columna clasificación:
-```{r}
-train$classification <- ifelse(train$Claim_Amount==0,"0","1")
-train$classification <- as.factor(train$classification)
-```
-##Comprobación de datos normalizados en variables numéricas (nosotros no hemos realizado la normalización pero tenemos que conocer que ha sido hecha):
-
-```{r}
-var_col <- c("Var1","Var2","Var3","Var4","Var5","Var6","Var7","Var8","NVVar1","NVVar2","NVVar3","NVVar4")
-var_num <- train[,var_col]
-round(sapply(var_num,function(x) mean(x)),0)
-round(sapply(var_num,function(x) sd(x)),0)
-```
-##Visualización de Datos
-
-
-Número de Pólizas por año
-```{r}
-count <- table(train$Calendar_Year)
-df <- data.frame(group=names(count),count)
-df$percent <-round((df$Freq/sum(df$Freq))*100,2)
-df <- df[-1]
-df
-```
-Pie Chart:
-```{r}
-slices <- df$Freq 
-lbls <-df$Var1
-pct <- df$percent
-lbls <- paste("Año ",lbls, sep="")
-lbls <- paste(lbls, pct,sep=": ") # add percents to labels 
-lbls <- paste(lbls,"%",sep="") # ad % to labels 
-pie(pct,labels = lbls, col=rainbow(length(lbls)),
-  	main="Desglose Pólizas con Siniestro por Año")
+summary(pruebasubmodel)
 ```
 
-Gráfico Variables categóricas - distribución tipo de variable:
-```{r}
-library(scales) 
-gr2.a <- ggplot(train, aes(Cat1)) + 
- geom_bar(aes(Cat1, (..count..)/sum(..count..)), width=0.5, fill = "grey") 
-
-gr2.a + scale_y_continuous(labels=percent) + xlab(NULL) + 
- ylab("% de tipos") + xlab("Tipos de Variable 1")+ggtitle("Distribución de las categorias") +  theme_bw()
-```
-
+Pruebas desglose Submodel:
+----------------
+train$largo <- nchar(levels(train$Blind_Make)[train$Blind_Make])
+train$largo_model <- nchar(levels(train$Blind_Model)[train$Blind_Model])
+train$largo_submodel <- nchar(levels(train$Blind_Submodel)[train$Blind_Submodel])
+train$make <- ifelse(train$largo_submodel==5,substr(train$Blind_Submodel,1,3),ifelse(train$largo_submodel==6,substr(train$Blind_Submodel,1,4),ifelse(train$largo_submodel==7,substr(train$Blind_Submodel,1,5),ifelse(train$largo_submodel==8,substr(train$Blind_Submodel,1,6),"NA"))))
+train$make <- as.factor(train$make)
+str(train$Blind_Model)
+str(train$make)
+----------------------
 ##Visualización e imputación de NA's
 ```{r}
 library(VIM)
@@ -269,6 +232,76 @@ modelcar$count <- 1
 Difmodelcar <- aggregate(count~. ,modelcar,sum)
 head(Difmodelcar[order(-Difmodelcar$count),])
 ```
+
+
+
+
+Eliminamos las columnas que no necesitamos para las predicciones:
+
+```{r}
+train_df <- train[,4:36]
+train_df$Blind_Make <- NULL
+train_df$Blind_Model <- NULL
+head(train_df)
+
+
+
+gregadosubmodelo <- aggregate(Blind_Submodel~Cat1+Cat2+Cat3+Cat4+Cat5+Cat6+Cat7+Cat8+Cat9,train,length)
+dim(agregadosubmodelo)
+```
+Vemos que 317 coches tienen los datos completos desde Cat1 a Cat9.
+
+
+
+```
+
+Añadir columna clasificación:
+```{r}
+train$classification <- ifelse(train$Claim_Amount==0,"0","1")
+train$classification <- as.factor(train$classification)
+```
+##Comprobación de datos normalizados en variables numéricas (nosotros no hemos realizado la normalización pero tenemos que conocer que ha sido hecha):
+
+```{r}
+var_col <- c("Var1","Var2","Var3","Var4","Var5","Var6","Var7","Var8","NVVar1","NVVar2","NVVar3","NVVar4")
+var_num <- train[,var_col]
+round(sapply(var_num,function(x) mean(x)),0)
+round(sapply(var_num,function(x) sd(x)),0)
+```
+##Visualización de Datos
+
+
+Número de Pólizas por año
+```{r}
+count <- table(train$Calendar_Year)
+df <- data.frame(group=names(count),count)
+df$percent <-round((df$Freq/sum(df$Freq))*100,2)
+df <- df[-1]
+df
+```
+Pie Chart:
+```{r}
+slices <- df$Freq 
+lbls <-df$Var1
+pct <- df$percent
+lbls <- paste("Año ",lbls, sep="")
+lbls <- paste(lbls, pct,sep=": ") # add percents to labels 
+lbls <- paste(lbls,"%",sep="") # ad % to labels 
+pie(pct,labels = lbls, col=rainbow(length(lbls)),
+  	main="Desglose Pólizas con Siniestro por Año")
+```
+
+Gráfico Variables categóricas - distribución tipo de variable:
+```{r}
+library(scales) 
+gr2.a <- ggplot(train, aes(Cat1)) + 
+ geom_bar(aes(Cat1, (..count..)/sum(..count..)), width=0.5, fill = "grey") 
+
+gr2.a + scale_y_continuous(labels=percent) + xlab(NULL) + 
+ ylab("% de tipos") + xlab("Tipos de Variable 1")+ggtitle("Distribución de las categorias") +  theme_bw()
+```
+
+
 summary(train$Row_ID)
 
 Número total de casos con daños corporal según el número de missing values
