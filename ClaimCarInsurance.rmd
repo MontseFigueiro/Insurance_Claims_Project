@@ -126,11 +126,18 @@ train$make <- as.factor(train$make)
 str(train$Blind_Model)
 str(train$make)
 ----------------------
+
 ##Visualización e imputación de NA's
 ```{r}
 library(VIM)
 library(mice)
 ```
+
+##Tratamiento Missing values
+
+Han sido borrados del Test dataset pero no del training dataset. Están como "?". 
+¿¿Tenemos casillas en blanco???
+Hay 4 variables con más de 4 millones de NA's
 
 Sustituimos los "?" por NA:
 ```{r}
@@ -141,11 +148,13 @@ Tabla resumen Missing Values por Variable:
 ```{r}
 Tabla_NAs <- as.data.frame(sapply(train, function(x) sum(is.na(x))))
 colnames(Tabla_NAs) <- c("NumNAs")
-obs_total <- nrow(train)
 Tabla_NAs$Porcentaje <- round((Tabla_NAs$NumNAs/nrow(train))*100,2)
 Tabla_NAs
+sum(Tabla_NAs$NumNAs)
 ```
-Seleccionamos de la tabla solo los que tienen NAs:
+Tenemos en total 23.438.318 de Missing Values, en el campo Porcentaje se indica el tanto por ciento de NA's sobre el total de observaciones de esa variables.
+
+Seleccionamos de la tabla solo las variables que tienen NAs:
 
 ```{r}
 TablaNas_Positive <- Tabla_NAs[Tabla_NAs$NumNAs>0,]
@@ -170,11 +179,24 @@ Tabla_var_frecuentes$Porcentaje <- round((Tabla_var_frecuentes$Observaciones/nro
 Tabla_var_frecuentes
 ```
 
-##Tratamiento Missing values
+Agregado de Blind_Submodel, número de observaciones para cada submodelo:
+```{r}
+submodelos <- as.data.frame(train$Blind_Submodel)
+submodelos$count <- as.numeric(1)
+agregado_submodelos <- aggregate(count~`train$Blind_Submodel`,submodelos,sum)
+#Añadimos una fila con los NA que la función aggregate excluye
+modelos_NA <- count(is.na(train$Blind_Submodel))
+newrow <- c("NA",8431)
+agregado_submodelos <- rbind(agregado_submodelos,newrow)
+agregado_submodelos$count <- as.numeric(agregado_submodelos$count)
+head(agregado_submodelos[order(-agregado_submodelos[,2]), ])
+```
+Hay 8431 observaciones con 48 siniestros con daño corporal a los que les falta Blind_Make, Blind_Model y Blind_Submodel:
 
-Han sido borrados del Test dataset pero no del training dataset. Están como "?". 
-Tenemos casillas en blanco???
-Hay 4 variables con más de 4 millones de NA's
+```{r}
+obs_without_model <- train[is.na(train$Blind_Submodel),]
+dim(obs_without_model)
+```
 
 Contamos los casos completos (no tienen ningún NA) y los casos incompletos (tienen algún NA)
 ```{r}
@@ -184,12 +206,13 @@ sum(!complete.cases(train)) # Count of incomplete cases
 
 Sumamos cuantos NA tiene cada observación:
 ```{r}
-train$NAS <- rowSums(is.na(train))
-train$NAS <- as.factor(train$NAS)
-freq_NA_row <- as.data.frame(summary(train$NAS))
-freq_NA_row
+NAS <- as.data.frame(rowSums(is.na(train)))
+NAS$`rowSums(is.na(train))` <- as.factor(NAS$`rowSums(is.na(train))`)
+summary(NAS)
 ```
 3706301 casos no tienen NA y 3114961 tienen 1 NA.
+
+--------------------------------------------------------------------
 
 ```{r}
 casoscon1NA <- train[train$NAS==1,]
@@ -217,22 +240,65 @@ colnames(Tabla4NAs) <- "4NA"
 Tabla1NAs$`4NA` <- Tabla4NAs$`4NA`
 Tabla1NAs
 ```
-
-Hay 8431 observaciones con 48 siniestros con daño corporal a los que les falta Blind_Make, Blind_Model y Blind_Submodel:
+----------------------------------------------------------
+##Visualización con VIM de las variables con NA:
 
 ```{r}
-obs_without_model <- train[is.na(train$Blind_Submodel),]
-dim(obs_without_model)
+cols <- rownames(TablaNas_Positive)
+cols_with_NA <- train[,cols]
+head(cols_with_NA)
 ```
-Cuantos modelos de vehículos diferentes tenemos en la base de datos:
 ```{r}
-cols_model <- c("Model_Year","Blind_Make","Blind_Model","Blind_Submodel","Cat1","Cat3","Cat4","Cat5","Cat6","Cat8","Cat9","Cat10","Cat11","")
-modelcar <- train[,cols_model]
-modelcar$count <- 1
-Difmodelcar <- aggregate(count~. ,modelcar,sum)
-head(Difmodelcar[order(-Difmodelcar$count),])
+jpeg("Missing_Pattern.jpeg")
+train_aggr = aggr(cols_with_NA, numbers=TRUE, sortVars=TRUE, labels=names(cols_with_NA), cex.axis=.7, gap=3, ylab=c("Proportion of missingness","Missingness Pattern"))
+dev.off()
 ```
 
+Como hemos comprobado en nuestra tabla "TablaNAs_Positive" solamente las variables categóricas tienen Missing Values:
+
+|Variable|Número de NA|Porcentaje|
+|--------|------------|----------|
+|Blind_Make|        8431  |     0.06|
+|Blind_Model|       8431  |     0.06|
+|Blind_Submodel|    8431  |     0.06|
+|Cat1           |  25981  |     0.20|
+|Cat2   |        4874164  |    36.97|
+|Cat3    |          3999  |     0.03|
+|Cat4     |      5631649  |    42.71|
+|Cat5      |     5637321  |    42.76|
+|Cat6     |        25981  |     0.20|
+|Cat7     |      7167634  |    54.36|
+|Cat8      |        3364  |     0.03|
+|Cat10      |       3917  |     0.03|
+|Cat11       |     31469  |     0.24|
+|OrdCat       |     7546  |     0.06|
+
+
+Vemos que hay relación entre la variable Blind_Submodel y las categóricas, siendo Cat1,Cat4,Cat5,Cat6,Cat7 iguales cuando se trata del mismo modelo de vehículo.
+
+k.7.3
+```{r}
+modelok73 <- train[train$Blind_Submodel=="K.7.3",]
+cols <- c("Blind_Submodel","Cat1","Cat2","Cat3","Cat4","Cat5","Cat6","Cat7","Cat8","Cat9","Cat10","Cat11","Cat12","OrdCat")
+modelok73 <- modelok73[,cols]
+uniquemodelok73 <-lapply(modelok73,unique)
+```
+
+
+##Encontrar patrones de los Missing Values con "mice"
+
+seleccionamos solo las columnas con Missing Values para encontrar patrones, todas las variables son categóricas (Factor):
+```{r}
+train_Missing_Values <- train[,8:21]
+train_Missing_Values <- train_Missing_Values[!is.na(train_Missing_Values$Blind_Submodel),]
+unique(is.na(train_Missing_Values$Blind_Submodel))
+train_Missing_Values_muestra <- train_Missing_Values[1:10000,]
+train_Missing_Values_muestra_P <- md.pattern(train_Missing_Values)
+```
+
+##Imputación de los Missing Value con MICE
+
+Tenemos 8431 observaciones que tienen missing values en las variables "Blind_Make","Blind_Model" y "Blind_Submodel", para estas variables el número de niveles es muy elevado. Como máximo las variables pueden tener 50 categorías diferentes. Vamos a realizar 3 operaciones para conseguir implementar los missing values:
 
 
 
@@ -246,7 +312,7 @@ head(train_df)
 
 
 
-gregadosubmodelo <- aggregate(Blind_Submodel~Cat1+Cat2+Cat3+Cat4+Cat5+Cat6+Cat7+Cat8+Cat9,train,length)
+gregadosubmodelo <- aggregate(Cat1+Cat2+Cat3+Cat4+Cat5+Cat6+Cat7+Cat8+Cat9~Blind_Submodel,train,length)
 dim(agregadosubmodelo)
 ```
 Vemos que 317 coches tienen los datos completos desde Cat1 a Cat9.
@@ -304,17 +370,6 @@ gr2.a + scale_y_continuous(labels=percent) + xlab(NULL) +
 
 summary(train$Row_ID)
 
-Número total de casos con daños corporal según el número de missing values
-
-```{r}
-head(train)
-columnas <- c("Household_ID","Claim_Amount","classification","NAS")
-Bd_dañocorporal <- train[,columnas]
-Bd_dañocorporal$classification <- as.numeric(Bd_dañocorporal$classification-1)
-NA_daño <- aggregate(cbind(Claim_Amount, classification)~NAS, data=Bd_dañocorporal, sum, na.rm=TRUE)
-NA_daño$Claim_Amount <-format(NA_daño$Claim_Amount, scientific = FALSE)
-NA_daño
-```
 
 Las 4 últimas variables no son variables del vehículo, con lo que se corresponden con variables de la póliza, podemos analizar en que casos la póliza ha tenido cobertura para daño corporal.
 ```{r}
@@ -328,47 +383,6 @@ head(claim_poliza_class[order(-claim_poliza_class$Claim_Amount),])
 
 ```
 
-##Visualización con VIM de las variables con NA:
-
-```{r}
-cols <- rownames(TablaNas_Positive)
-cols_with_NA <- train[,cols]
-head(cols_with_NA)
-```
-```{r}
-jpeg("Missing_Pattern.jpeg")
-train_aggr = aggr(cols_with_NA, numbers=TRUE, sortVars=TRUE, labels=names(cols_with_NA), cex.axis=.7, gap=3, ylab=c("Proportion of missingness","Missingness Pattern"))
-dev.off()
-```
-Visualización solo de los que tienen Claim_Amount>0:
-```{r}
-positive_claims <- train[train$Claim_Amount>0,]
-jpeg("Missing_Pattern_with_claim.jpeg")
-train_aggr_claim = aggr(positive_claims, numbers=TRUE, sortVars=TRUE, labels=names(cols_with_NA), cex.axis=.7, gap=3, ylab=c("Proportion of missingness","Missingness Pattern"))
-dev.off()
-```
-##Encontrar patrones de los Missing Values con "mice"
-
-
-```{r}
-train_sin_id <- train[,4:35]
-muestra <- train_sin_id[1:10000,]
-patrones_mice <- md.pattern(muestra)
-```
-
-##Imputación de los Missing Value con MICE
-
-Tenemos 8431 observaciones que tienen missing values en las variables "Blind_Make","Blind_Model" y "Blind_Submodel", para estas variables el número de niveles es muy elevado. Como máximo las variables pueden tener 50 categorías diferentes. Vamos a realizar 3 operaciones para conseguir implementar los missing values:
-
-```{r}
-length(unique(train$Blind_Make))#75 levels
-length(unique(train$Blind_Model))#1303 levels
-length(unique(train$Blind_Submodel))#2740 levels
-```
-
-* Caso A: Utilizar toda la base de datos dejando en estas tres variables como "?" para que no lo detecte como missing value, pero teniendo en cuenta estas tres columnas para el resto de las observaciones.
-* Caso B: Utilizar toda la base de datos quitando estas tres variables para la implementación de los missing values.
-* Caso C: Quitar estas 8431 observaciones y realizar la implementación con el resto de las variables.
 
 ##Caso A:
 
