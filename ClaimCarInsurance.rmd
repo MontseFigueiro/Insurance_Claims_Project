@@ -71,7 +71,6 @@ summary(train)
 ```
 
 ###problema de memoria
-library(pryr)
 
 ```{r}
 memory.limit()
@@ -93,6 +92,8 @@ train$NVCat <- as.factor(train$NVCat)
 train$OrdCat <- as.factor(train$OrdCat)
 ```
 
+
+
 Tenemos el año de la póliza y el año del vehículo, hemos comprobado que ninguna de las variables numérica se corresponde con la antigûedad del coche pero podemos calcularla y puede ser un dato muy interesante:
 
 ```{r}
@@ -104,10 +105,144 @@ Tenemos valores negativos en la edad del vehículo, es decir que si el año de la 
 Tenemos 155.991 coches con edades negativas,las vamos a dejar a 0 porque no tiene lógica 
 
 ```{r}
-edad_negativa <- train[train$EdadVehiculo<0,]
-summary(train$EdadVehiculo)
 train$EdadVehiculo <- ifelse(train$EdadVehiculo<0,0,train$EdadVehiculo)
 ```
+```{r}
+train[train=="?"] <- NA
+```
+
+##Problemas que nos encontramos en nuestra base de datos:
+
+* Número elevado de Missing Values
+* Multicolinealidad 
+* Datos desproporcionados. 99% Claim_Amount = 0.
+    * Under-Sampling: Eliminamos observaciones = 0, solo vale para ahorrar tiempo, perdemos información.
+    * Over-Sampling: Implica hacer copias de la Clase mínima causando overfitting.
+    * Este no suele ser un problema para la regressión logística.
+    * Métodos de penalización como Ridge o Lasso funcionan bien en regressiones binomial.
+    * logit and probit aproximan el 0 al mismo ratio que el 1.
+
+
+ESQUEMA A REALIZAR:
+
+Train >>> casos_completos >>> Sample_casos_completos >>> Eliminar ID >>> Partición Train/Test >>> Oversampling >>> "Data Frame compensado" >>> Eliminar Variables
+
+
+##Problema con "Imbalanced Training Data", más del 99% de los datos están clasificados como 0.
+
+Tanto en el fichero Train como en el de Casos_Completos el 99% de los datos está clasificado como 0 con lo que cualquie predicción que hagamos nos va a dar 0.
+
+En éste caso al tener más de 13 millones de observaciones podriamos realizar un under-sampling, que consiste en disminuir el número de observaciones con Claim_Amount=0.
+
+
+```{r}    
+casos_completos <- train[complete.cases(train),]
+casos_completos$classification <- ifelse(casos_completos$Claim_Amount==0,"0","1")
+casos_completos$classification <- as.factor(casos_completos$classification)
+casos_completos <- casos_completos[,4:37]
+casos_completos$Calendar_Year <- NULL
+casos_completos$Blind_Make <- NULL
+casos_completos$Blind_Model <- NULL
+casos_completos$Blind_Submodel <- NULL
+
+##sample_casos_completos <- casos_completos[sample(nrow(casos_completos), 60000), ]
+sample_casos_completos <- casos_completos
+prop.table(table(sample_casos_completos$classification))
+```    
+
+CARET, partimos la base de datos en dos:
+```{r}
+library(caret)
+set.seed(1234)
+splitIndex <- createDataPartition(sample_casos_completos$classification, p = .50,list = FALSE,times = 1)
+train_sample <- sample_casos_completos[ splitIndex,]
+prop.table(table(train_sample$classification))
+test_sample <- sample_casos_completos[-splitIndex,]
+test_sample_clas <- test_sample$classification
+test_sample$classification <- NULL
+```
+ROSE para hacer el resampling de la base de datos, ,por defecto utiliza el método Both, una mezcla de Over and Under.
+```{r}
+library(ROSE)
+train_ROSE <- ROSE(classification ~ ., data = train_sample, seed = 1)$data
+table(train_ROSE$classification)
+table(train_sample$classification)
+```               
+El train_sample tenía 20000 observaciones con 151 positivas. ROSE nos deja la base de datos con 10000 observaciones, las reduce pero nos amplia a 10000 las positivas.
+
+
+##Multicolinearidad de las variables, eliminación variables.
+
+A partir de nuestra nueva base de datos creada con Rose y ya equilibrada, seleccionamos las variables que no tienen colinealidad:
+
+correlationmatrix <- cor(train_ROSE[,17:24])
+correlationmatrix
+sample <- train_ROSE[sample(nrow(train_ROSE), 100000), ]
+highlyCorrelated <- findCorrelation(correlationmatrix, cutoff=0.5)
+highlyCorrelated
+control <- trainControl(method="repeatedcv", number=10, repeats=3)
+# train the model
+model <- train(classification~., data=sample, method="lvq", preProcess="scale",trControl=control)
+# estimate variable importance
+importance <- varImp(model, scale=FALSE)
+# summarize importance
+print(importance)
+# plot importance
+plot(importance)
+
+```{r}
+modelok73complete <- casos_completos[casos_completos$Blind_Submodel=="K.7.3",]
+#Tenemos 164865 observaciones del vehiculo K.7.3 que estan completas.
+require(plyr)
+df1 <- ddply(casos_completos, c("Blind_Submodel","Cat1","Cat4","Cat5","Cat6","Cat7"), summarize, total=sum(Claim_Amount))
+```
+
+Categoricas:
+
+```{r}
+summary(train_ROSE)
+chisq.test(train_ROSE$Cat1,train_ROSE$Cat12)
+chisq.test(train_ROSE$Blind_Submodel,train_ROSE$Cat1)
+chisq.test(train_ROSE$Blind_Submodel,train_ROSE$Cat2)
+
+#Interpretación Chi-test:
+#Para las variables Cat10,Cat11 y Cat12 0.71,0.321 y 0.1287 no podemos rechazar la hipotesis nula de que las variables son independientes. Para el resto de las variables p-value es 0.
+
+library(polycor)
+
+pruebahetcor <- train_ROSE[,c("Cat1","Cat2","Cat3","Cat4","Cat5","Cat6","Cat7","Cat8","Cat9","Cat10","Cat11","Cat12","OrdCat")]
+#Interpretación 
+corrhetcor <- hetcor(pruebahetcor)
+corrhetcor$correlations
+
+
+oneway.test(casos_completos$Claim_Amount~casos_completos$Var1, var.equal = TRUE)
+```
+
+```{r}
+install.packages("car")
+library(car)#call vif
+prueba <- casos_completos[,8:36]
+head(casos_completos)
+model <- lm(Claim_Amount~Cat10+Cat11+Cat12,casos_completos)
+model <- glm(NVVar4~NVVar1+NVVar2+NVVar3,prueba)
+model <- glm(Claim_Amount~Cat10+Cat11+Cat12+Var1+Var2+Var3+Var4+Var5+Var6+Var7+Var8,family=poisson,prueba)
+
+model <- lm(Var4~Var1+Var2+Var3+Var5+Var6+Var7+Var8,prueba)
+model <- lm(Var3~Var5+Var1+Var4+Var2+Var6+Var7+Var8,prueba)
+model <- lm(Var6~.,prueba)
+model <- lm(Var7~.,prueba)
+model <- lm(Var8~.,prueba)
+pruebanum <- prueba[,15:22]
+cor(pruebanum)
+summary(model)
+Rsq = summary(model)$r.squared
+Rsq
+1/(1-Rsq)
+unique(casos_completos$Var5)
+```
+
+
 
 
 Podemos prescindir de las variables "Blind_Make" y "Blind_Model" porque están incluidas dentro de "Blind_Submodel", hemos comprobado que Blind_Submodel incluye esas variables:
@@ -282,44 +417,46 @@ modelok73 <- train[train$Blind_Submodel=="K.7.3",]
 cols <- c("Blind_Submodel","Cat1","Cat2","Cat3","Cat4","Cat5","Cat6","Cat7","Cat8","Cat9","Cat10","Cat11","Cat12","OrdCat")
 modelok73 <- modelok73[,cols]
 uniquemodelok73 <-lapply(modelok73,unique)
+uniquemodelok73
 ```
+
+
 
 
 ##Encontrar patrones de los Missing Values con "mice"
 
-seleccionamos solo las columnas con Missing Values para encontrar patrones, todas las variables son categóricas (Factor):
+Tenemos 8431 observaciones que tienen missing values en las variables "Blind_Make","Blind_Model" y "Blind_Submodel", para estas variables el número de niveles es muy elevado. Como máximo las variables pueden tener 50 categorías diferentes. Vamos a realizar 3 operaciones para conseguir implementar los missing values:
+Lo primero que vamos a hacer es separar train en dos data.frame vamos a quitar los 8451 observaciones el las que Submodel es NA porque al tener más de 2000 niveles nos da problemas a la hora de predecir el resto de las variables ya que Mice solo nos permite 50.
 ```{r}
-train_Missing_Values <- train[,8:21]
-train_Missing_Values <- train_Missing_Values[!is.na(train_Missing_Values$Blind_Submodel),]
-unique(is.na(train_Missing_Values$Blind_Submodel))
+train_1 <-  train[!is.na(train$Blind_Submodel),]
+train_2 <- train[is.na(train$Blind_Submodel),]
+dim(train_1)
+dim(train_2)
+```
+
+seleccionamos solo las columnas con Missing Values para encontrar patrones, todas las variables son categóricas (Factor).
+
+```{r}
+train_Missing_Values <- train_1[,8:21]
+unique(is.na(train_Missing_Values$Blind_Submodel))#no hay ningún NA en el submodel
 train_Missing_Values_muestra <- train_Missing_Values[1:10000,]
-train_Missing_Values_muestra_P <- md.pattern(train_Missing_Values)
+patron_muestra <- md.pattern(train_Missing_Values_muestra)
 ```
 
 ##Imputación de los Missing Value con MICE
 
-Tenemos 8431 observaciones que tienen missing values en las variables "Blind_Make","Blind_Model" y "Blind_Submodel", para estas variables el número de niveles es muy elevado. Como máximo las variables pueden tener 50 categorías diferentes. Vamos a realizar 3 operaciones para conseguir implementar los missing values:
-
-
-
-Eliminamos las columnas que no necesitamos para las predicciones:
+Con el data.frame que creamos con anterioridad ya podemos realizar la imputación de los missing Value con "mice":
 
 ```{r}
-train_df <- train[,4:36]
-train_df$Blind_Make <- NULL
-train_df$Blind_Model <- NULL
-head(train_df)
-
-
-
-gregadosubmodelo <- aggregate(Cat1+Cat2+Cat3+Cat4+Cat5+Cat6+Cat7+Cat8+Cat9~Blind_Submodel,train,length)
-dim(agregadosubmodelo)
+imp <- mice(data=train_Missing_Values_muestra, m=2,method= "polyreg", seed = 1234,MaxNWts = 2000)
 ```
+El paquete mice tarda en exceso, así que probamos otro de los paquetes de R "Amelia"
+
+install.packages("Amelia")
+library(Amelia)
+imp.amelia <- amelia(train_Missing_Values_muestra, noms=colnames(train_Missing_Values_muestra))
 Vemos que 317 coches tienen los datos completos desde Cat1 a Cat9.
 
-
-
-```
 
 Añadir columna clasificación:
 ```{r}
