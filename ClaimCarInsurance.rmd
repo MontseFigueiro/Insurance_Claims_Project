@@ -161,12 +161,24 @@ test_sample <- sample_casos_completos[-splitIndex,]
 test_sample_clas <- test_sample$classification
 test_sample$classification <- NULL
 ```
-ROSE para hacer el resampling de la base de datos, ,por defecto utiliza el método Both, una mezcla de Over and Under.
+SMOTE, over-resampling.
+
+```{r}
+install.packages("DMwR")
+library(DMwR)
+dput(names(train_sample))
+train_SMOTE <- SMOTE(classification~.,train_sample,perc.over = 100,perc.under = 200)
+table(train_SMOTE$classification)
+table(train_sample$classification)
+head(train_SMOTE)
+```
+ROSE para hacer el resampling de la base de datos, ,por defecto utiliza el método Both, una mezcla de Over and Under. El problema de ROSE son los datos que genera.
 ```{r}
 library(ROSE)
 train_ROSE <- ROSE(classification ~ ., data = train_sample, seed = 1)$data
 table(train_ROSE$classification)
 table(train_sample$classification)
+
 ```               
 El train_sample tenía 20000 observaciones con 151 positivas. ROSE nos deja la base de datos con 10000 observaciones, las reduce pero nos amplia a 10000 las positivas.
 
@@ -175,20 +187,25 @@ El train_sample tenía 20000 observaciones con 151 positivas. ROSE nos deja la ba
 
 A partir de nuestra nueva base de datos creada con Rose y ya equilibrada, seleccionamos las variables que no tienen colinealidad:
 
-correlationmatrix <- cor(train_ROSE[,17:24])
+CRAMER's V
+```{r}
+cv.test = function(x,y) {
+  CV = sqrt(chisq.test(x, y, correct=FALSE)$statistic /
+    (length(x) * (min(length(unique(x)),length(unique(y))) - 1)))
+  print.noquote("Cramér V / Phi:")
+  return(as.numeric(CV))
+}
+
+#Cramer V
+with(train_SMOTE, cv.test(Cat2, Cat8))
+```
+
+correlationmatrix <- cor(train_SMOTE[,15:22])
 correlationmatrix
-sample <- train_ROSE[sample(nrow(train_ROSE), 100000), ]
 highlyCorrelated <- findCorrelation(correlationmatrix, cutoff=0.5)
 highlyCorrelated
-control <- trainControl(method="repeatedcv", number=10, repeats=3)
-# train the model
-model <- train(classification~., data=sample, method="lvq", preProcess="scale",trControl=control)
-# estimate variable importance
-importance <- varImp(model, scale=FALSE)
-# summarize importance
-print(importance)
-# plot importance
-plot(importance)
+
+
 
 ```{r}
 modelok73complete <- casos_completos[casos_completos$Blind_Submodel=="K.7.3",]
@@ -200,17 +217,15 @@ df1 <- ddply(casos_completos, c("Blind_Submodel","Cat1","Cat4","Cat5","Cat6","Ca
 Categoricas:
 
 ```{r}
-summary(train_ROSE)
-chisq.test(train_ROSE$Cat1,train_ROSE$Cat12)
-chisq.test(train_ROSE$Blind_Submodel,train_ROSE$Cat1)
-chisq.test(train_ROSE$Blind_Submodel,train_ROSE$Cat2)
+summary(train_SMOTE)
+chisq.test(train_SMOTE$Cat4,train_SMOTE$Cat10)
 
 #Interpretación Chi-test:
 #Para las variables Cat10,Cat11 y Cat12 0.71,0.321 y 0.1287 no podemos rechazar la hipotesis nula de que las variables son independientes. Para el resto de las variables p-value es 0.
 
 library(polycor)
 
-pruebahetcor <- train_ROSE[,c("Cat1","Cat2","Cat3","Cat4","Cat5","Cat6","Cat7","Cat8","Cat9","Cat10","Cat11","Cat12","OrdCat")]
+pruebahetcor <- train_SMOTE[,c("Cat1","Cat2","Cat3","Cat4","Cat5","Cat6","Cat7","Cat8","Cat9","Cat10","Cat11","Cat12","OrdCat")]
 #Interpretación 
 corrhetcor <- hetcor(pruebahetcor)
 corrhetcor$correlations
@@ -218,28 +233,13 @@ corrhetcor$correlations
 
 oneway.test(casos_completos$Claim_Amount~casos_completos$Var1, var.equal = TRUE)
 ```
-
+VIF variables numéricas:
 ```{r}
-install.packages("car")
-library(car)#call vif
-prueba <- casos_completos[,8:36]
-head(casos_completos)
-model <- lm(Claim_Amount~Cat10+Cat11+Cat12,casos_completos)
-model <- glm(NVVar4~NVVar1+NVVar2+NVVar3,prueba)
-model <- glm(Claim_Amount~Cat10+Cat11+Cat12+Var1+Var2+Var3+Var4+Var5+Var6+Var7+Var8,family=poisson,prueba)
-
-model <- lm(Var4~Var1+Var2+Var3+Var5+Var6+Var7+Var8,prueba)
-model <- lm(Var3~Var5+Var1+Var4+Var2+Var6+Var7+Var8,prueba)
-model <- lm(Var6~.,prueba)
-model <- lm(Var7~.,prueba)
-model <- lm(Var8~.,prueba)
-pruebanum <- prueba[,15:22]
-cor(pruebanum)
+model <- lm(Var1~Var5+Var3+Var4+Var2+Var6+Var7+Var8,train_SMOTE)
 summary(model)
 Rsq = summary(model)$r.squared
 Rsq
 1/(1-Rsq)
-unique(casos_completos$Var5)
 ```
 
 
