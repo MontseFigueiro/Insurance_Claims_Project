@@ -169,8 +169,7 @@ library(DMwR)
 dput(names(train_sample))
 train_SMOTE <- SMOTE(classification~.,train_sample,perc.over = 100,perc.under = 200)
 table(train_SMOTE$classification)
-table(train_sample$classification)
-head(train_SMOTE)
+
 ```
 ROSE para hacer el resampling de la base de datos, ,por defecto utiliza el método Both, una mezcla de Over and Under. El problema de ROSE son los datos que genera.
 ```{r}
@@ -235,8 +234,17 @@ oneway.test(casos_completos$Claim_Amount~casos_completos$Var1, var.equal = TRUE)
 ```
 VIF variables numéricas:
 ```{r}
-model <- lm(Var1~Var5+Var3+Var4+Var2+Var6+Var7+Var8,train_SMOTE)
+dput(names(train_SMOTE))
+model <- glm(classification~Model_Year+ Cat9+ Cat10+ Var4+ Var5+Var8+ NVVar2+ NVVar3,train_SMOTE, family=binomial(link=logit))
 summary(model)
+pred <- predict(model,test_sample)
+model$coefficients
+anova(model,test="Chisq")
+install.packages("pscl")
+library(pscl)
+pR2(model)
+
+
 Rsq = summary(model)$r.squared
 Rsq
 1/(1-Rsq)
