@@ -107,168 +107,22 @@ Tenemos 155.991 coches con edades negativas,las vamos a dejar a 0 porque no tien
 ```{r}
 train$EdadVehiculo <- ifelse(train$EdadVehiculo<0,0,train$EdadVehiculo)
 ```
+
+Tratamos a los ? como NA:
 ```{r}
 train[train=="?"] <- NA
 ```
 
-##Problemas que nos encontramos en nuestra base de datos:
-
-* Número elevado de Missing Values
-* Multicolinealidad 
-* Datos desproporcionados. 99% Claim_Amount = 0.
-    * Under-Sampling: Eliminamos observaciones = 0, solo vale para ahorrar tiempo, perdemos información.
-    * Over-Sampling: Implica hacer copias de la Clase mínima causando overfitting.
-    * Este no suele ser un problema para la regressión logística.
-    * Métodos de penalización como Ridge o Lasso funcionan bien en regressiones binomial.
-    * logit and probit aproximan el 0 al mismo ratio que el 1.
-
-
-ESQUEMA A REALIZAR:
-
-Train >>> casos_completos >>> Sample_casos_completos >>> Eliminar ID >>> Partición Train/Test >>> Oversampling >>> "Data Frame compensado" >>> Eliminar Variables
-
-
-##Problema con "Imbalanced Training Data", más del 99% de los datos están clasificados como 0.
-
-Tanto en el fichero Train como en el de Casos_Completos el 99% de los datos está clasificado como 0 con lo que cualquie predicción que hagamos nos va a dar 0.
-
-En éste caso al tener más de 13 millones de observaciones podriamos realizar un under-sampling, que consiste en disminuir el número de observaciones con Claim_Amount=0.
-
-
-```{r}    
-casos_completos <- train[complete.cases(train),]
-casos_completos$classification <- ifelse(casos_completos$Claim_Amount==0,"0","1")
-casos_completos$classification <- as.factor(casos_completos$classification)
-casos_completos <- casos_completos[,4:37]
-casos_completos$Calendar_Year <- NULL
-casos_completos$Blind_Make <- NULL
-casos_completos$Blind_Model <- NULL
-casos_completos$Blind_Submodel <- NULL
-
-##sample_casos_completos <- casos_completos[sample(nrow(casos_completos), 60000), ]
-sample_casos_completos <- casos_completos
-prop.table(table(sample_casos_completos$classification))
-```    
-
-CARET, partimos la base de datos en dos:
+Contamos los casos completos (no tienen ningún NA) y los casos incompletos (tienen algún NA)
 ```{r}
-library(caret)
-set.seed(1234)
-splitIndex <- createDataPartition(sample_casos_completos$classification, p = .50,list = FALSE,times = 1)
-train_sample <- sample_casos_completos[ splitIndex,]
-prop.table(table(train_sample$classification))
-test_sample <- sample_casos_completos[-splitIndex,]
-test_sample_clas <- test_sample$classification
-test_sample$classification <- NULL
-```
-SMOTE, over-resampling.
-
-```{r}
-install.packages("DMwR")
-library(DMwR)
-dput(names(train_sample))
-train_SMOTE <- SMOTE(classification~.,train_sample,perc.over = 100,perc.under = 200)
-table(train_SMOTE$classification)
-
-```
-ROSE para hacer el resampling de la base de datos, ,por defecto utiliza el método Both, una mezcla de Over and Under. El problema de ROSE son los datos que genera.
-```{r}
-library(ROSE)
-train_ROSE <- ROSE(classification ~ ., data = train_sample, seed = 1)$data
-table(train_ROSE$classification)
-table(train_sample$classification)
-
-```               
-El train_sample tenía 20000 observaciones con 151 positivas. ROSE nos deja la base de datos con 10000 observaciones, las reduce pero nos amplia a 10000 las positivas.
-
-
-##Multicolinearidad de las variables, eliminación variables.
-
-A partir de nuestra nueva base de datos creada con Rose y ya equilibrada, seleccionamos las variables que no tienen colinealidad:
-
-CRAMER's V
-```{r}
-cv.test = function(x,y) {
-  CV = sqrt(chisq.test(x, y, correct=FALSE)$statistic /
-    (length(x) * (min(length(unique(x)),length(unique(y))) - 1)))
-  print.noquote("Cramér V / Phi:")
-  return(as.numeric(CV))
-}
-
-#Cramer V
-with(train_SMOTE, cv.test(Cat2, Cat8))
+sum(complete.cases(train)) # Count of complete cases in a data frame named 'data'
+sum(!complete.cases(train)) # Count of incomplete cases
 ```
 
-correlationmatrix <- cor(train_SMOTE[,15:22])
-correlationmatrix
-highlyCorrelated <- findCorrelation(correlationmatrix, cutoff=0.5)
-highlyCorrelated
-
-
-
+Observaciones con Claim_Amount:
 ```{r}
-modelok73complete <- casos_completos[casos_completos$Blind_Submodel=="K.7.3",]
-#Tenemos 164865 observaciones del vehiculo K.7.3 que estan completas.
-require(plyr)
-df1 <- ddply(casos_completos, c("Blind_Submodel","Cat1","Cat4","Cat5","Cat6","Cat7"), summarize, total=sum(Claim_Amount))
+positiveclaim <- train[train$Claim_Amount>0,]
 ```
-
-Categoricas:
-
-```{r}
-summary(train_SMOTE)
-chisq.test(train_SMOTE$Cat4,train_SMOTE$Cat10)
-
-#Interpretación Chi-test:
-#Para las variables Cat10,Cat11 y Cat12 0.71,0.321 y 0.1287 no podemos rechazar la hipotesis nula de que las variables son independientes. Para el resto de las variables p-value es 0.
-
-library(polycor)
-
-pruebahetcor <- train_SMOTE[,c("Cat1","Cat2","Cat3","Cat4","Cat5","Cat6","Cat7","Cat8","Cat9","Cat10","Cat11","Cat12","OrdCat")]
-#Interpretación 
-corrhetcor <- hetcor(pruebahetcor)
-corrhetcor$correlations
-
-
-oneway.test(casos_completos$Claim_Amount~casos_completos$Var1, var.equal = TRUE)
-```
-VIF variables numéricas:
-```{r}
-dput(names(train_SMOTE))
-model <- glm(classification~Model_Year+ Cat9+ Cat10+ Var4+ Var5+Var8+ NVVar2+ NVVar3,train_SMOTE, family=binomial(link=logit))
-summary(model)
-pred <- predict(model,test_sample)
-model$coefficients
-anova(model,test="Chisq")
-install.packages("pscl")
-library(pscl)
-pR2(model)
-
-
-Rsq = summary(model)$r.squared
-Rsq
-1/(1-Rsq)
-```
-
-
-
-
-Podemos prescindir de las variables "Blind_Make" y "Blind_Model" porque están incluidas dentro de "Blind_Submodel", hemos comprobado que Blind_Submodel incluye esas variables:
-```{r}
-pruebasubmodel <- train[train$Blind_Submodel=="K.2.4",]
-summary(pruebasubmodel)
-```
-
-Pruebas desglose Submodel:
-----------------
-train$largo <- nchar(levels(train$Blind_Make)[train$Blind_Make])
-train$largo_model <- nchar(levels(train$Blind_Model)[train$Blind_Model])
-train$largo_submodel <- nchar(levels(train$Blind_Submodel)[train$Blind_Submodel])
-train$make <- ifelse(train$largo_submodel==5,substr(train$Blind_Submodel,1,3),ifelse(train$largo_submodel==6,substr(train$Blind_Submodel,1,4),ifelse(train$largo_submodel==7,substr(train$Blind_Submodel,1,5),ifelse(train$largo_submodel==8,substr(train$Blind_Submodel,1,6),"NA"))))
-train$make <- as.factor(train$make)
-str(train$Blind_Model)
-str(train$make)
-----------------------
 
 ##Visualización e imputación de NA's
 ```{r}
@@ -281,11 +135,6 @@ library(mice)
 Han sido borrados del Test dataset pero no del training dataset. Están como "?". 
 ¿¿Tenemos casillas en blanco???
 Hay 4 variables con más de 4 millones de NA's
-
-Sustituimos los "?" por NA:
-```{r}
-train[train=="?"] <- NA
-```
 
 Tabla resumen Missing Values por Variable:
 ```{r}
@@ -341,11 +190,6 @@ obs_without_model <- train[is.na(train$Blind_Submodel),]
 dim(obs_without_model)
 ```
 
-Contamos los casos completos (no tienen ningún NA) y los casos incompletos (tienen algún NA)
-```{r}
-sum(complete.cases(train)) # Count of complete cases in a data frame named 'data'
-sum(!complete.cases(train)) # Count of incomplete cases
-```
 
 Sumamos cuantos NA tiene cada observación:
 ```{r}
@@ -428,6 +272,226 @@ uniquemodelok73 <-lapply(modelok73,unique)
 uniquemodelok73
 ```
 
+##Las categóricas Cat1,Cat4, Cat5, Cat7,Cat8, Cat9 podemos agruparlas por Submodel y así poder corregir algunos de los NA que tenemos sustituyéndolos por el valor más frecuente para ese submodelo:
+
+Queremos calcular la moda para Cat1, Cat4,Cat5,Cat7,Cat8,Cat9 para sustituir los NA:
+```{r}
+train2 <- train
+Cat1 <- train[,c("Blind_Submodel","Cat1")]
+Cat1 <- Cat1[complete.cases(Cat1),]
+Cat4 <- train[,c("Blind_Submodel","Cat4")]
+Cat4 <- Cat4[complete.cases(Cat4),]
+Cat7 <- train[,c("Blind_Submodel","Cat7")]
+Cat7 <- Cat7[complete.cases(Cat7),]
+
+nas <- xy[is.na(xy$Cat1),]
+head(nas)
+
+library(dplyr)
+library(plyr)
+#CAT1
+a <- Cat1 %>% group_by(Blind_Submodel) %>% summarize (b =names(which.max(table(Cat1))))
+a <- as.data.frame(a)
+a$Blind_Submodel <- as.factor(a$Blind_Submodel)
+a$b <- as.factor(a$b)
+xy <- merge(x = train2, y = a, by = "Blind_Submodel", all.x = TRUE)
+xy$Cat1[is.na(xy$Cat1)] <- as.factor(xy$b[is.na(xy$Cat1)])
+
+#CAT4
+b <- Cat4 %>% group_by(Blind_Submodel) %>% summarize (b =names(which.max(table(Cat4))))
+b <- as.data.frame(b)
+b$Blind_Submodel <- as.factor(b$Blind_Submodel)
+b$b <- as.factor(b$b)
+xy <- merge(x = xy, y = b, by = "Blind_Submodel", all.x = TRUE)
+xy$Cat4[is.na(xy$Cat4)] <- as.factor(xy$b.y[is.na(xy$Cat4)])
+
+#CAT7
+
+c <- Cat7 %>% group_by(Blind_Submodel) %>% summarize (b =names(which.max(table(Cat7))))
+c <- as.data.frame(c)
+c$Blind_Submodel <- as.factor(c$Blind_Submodel)
+c$b <- as.factor(c$b)
+xy <- merge(x = xy, y = c, by = "Blind_Submodel", all.x = TRUE)
+xy$Cat7[is.na(xy$Cat7)] <- as.factor(xy$b[is.na(xy$Cat7)])
+summary(xy$Cat7)
+summary(train$Cat7)
+```
+
+##Problemas que nos encontramos en nuestra base de datos:
+
+* Número elevado de Missing Values
+* Multicolinealidad 
+* Datos desproporcionados. 99% Claim_Amount = 0.
+    * Under-Sampling: Eliminamos observaciones = 0, solo vale para ahorrar tiempo, perdemos información.
+    * Over-Sampling: Implica hacer copias de la Clase mínima causando overfitting.
+    * Este no suele ser un problema para la regressión logística.
+    * Métodos de penalización como Ridge o Lasso funcionan bien en regressiones binomial.
+    * logit and probit aproximan el 0 al mismo ratio que el 1.
+
+
+ESQUEMA A REALIZAR:
+
+Train >>> casos_completos >>> Sample_casos_completos >>> Eliminar ID >>> Partición Train/Test >>> Oversampling >>> "Data Frame compensado" >>> Eliminar Variables
+
+
+##Problema con "Imbalanced Training Data", más del 99% de los datos están clasificados como 0.
+
+Tanto en el fichero Train como en el de Casos_Completos el 99% de los datos está clasificado como 0 con lo que cualquie predicción que hagamos nos va a dar 0.
+
+En éste caso al tener más de 13 millones de observaciones podriamos realizar un under-sampling, que consiste en disminuir el número de observaciones con Claim_Amount=0.
+
+
+```{r}    
+casos_completos <- train[complete.cases(train),]
+```
+
+```{r}
+casos_completos$classification <- ifelse(casos_completos$Claim_Amount==0,"0","1")
+casos_completos$classification <- as.factor(casos_completos$classification)
+casos_completos <- casos_completos[,4:37]
+casos_completos$Calendar_Year <- NULL
+casos_completos$Blind_Make <- NULL
+casos_completos$Blind_Model <- NULL
+casos_completos$Blind_Submodel <- NULL
+
+##sample_casos_completos <- casos_completos[sample(nrow(casos_completos), 60000), ]
+sample_casos_completos <- casos_completos
+prop.table(table(sample_casos_completos$classification))
+```    
+
+CARET, partimos la base de datos en dos:
+```{r}
+library(caret)
+set.seed(1234)
+splitIndex <- createDataPartition(sample_casos_completos$classification, p = .50,list = FALSE,times = 1)
+train_sample <- sample_casos_completos[ splitIndex,]
+prop.table(table(train_sample$classification))
+test_sample <- sample_casos_completos[-splitIndex,]
+test_sample_clas <- test_sample$classification
+test_sample$classification <- NULL
+```
+SMOTE, over-resampling.
+
+```{r}
+library(DMwR)
+train_SMOTE <- SMOTE(classification~.,casos_completos,perc.over = 100,perc.under = 200)
+table(train_SMOTE$classification)
+
+```
+ROSE para hacer el resampling de la base de datos, ,por defecto utiliza el método Both, una mezcla de Over and Under. El problema de ROSE son los datos que genera.
+```{r}
+library(ROSE)
+train_ROSE <- ROSE(classification ~ ., data = train_sample, seed = 1)$data
+table(train_ROSE$classification)
+table(train_sample$classification)
+
+```               
+El train_sample tenía 20000 observaciones con 151 positivas. ROSE nos deja la base de datos con 10000 observaciones, las reduce pero nos amplia a 10000 las positivas.
+
+
+##Multicolinearidad de las variables, eliminación variables.
+
+A partir de nuestra nueva base de datos creada con Rose y ya equilibrada, seleccionamos las variables que no tienen colinealidad:
+
+CRAMER's V
+```{r}
+cv.test = function(x,y) {
+  CV = sqrt(chisq.test(x, y, correct=FALSE)$statistic /
+    (length(x) * (min(length(unique(x)),length(unique(y))) - 1)))
+  print.noquote("Cramér V / Phi:")
+  return(as.numeric(CV))
+}
+
+#Cramer V
+with(train_SMOTE, cv.test(Cat2, Cat8))
+```
+
+correlationmatrix <- cor(train_SMOTE[,15:22])
+correlationmatrix
+highlyCorrelated <- findCorrelation(correlationmatrix, cutoff=0.5)
+highlyCorrelated
+
+
+Análisis modelos:
+
+Blind_Submodel con más Claim_Amount:
+```{r}
+total_model <- aggregate(Claim_Amount~Blind_Submodel, train, sum)
+Claim_model <- total_model[order(-total_model$Claim_Amount),] 
+head(Claim_model,30)
+```{r}
+modeloau.14.0 <- train[train$Blind_Submodel=="AU.14.0",]
+summary(modeloau.14.0)
+```
+Éste es el modelo de coche que más Claim_Amount tiene, hay 145474 observaciones. 
+Con Summary vemos que Cat1, Cat4, Cat5, Cat7,Cat8,Cat9.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+require(plyr)
+df1 <- ddply(casos_completos, c("Blind_Submodel","Cat1","Cat4","Cat5","Cat6","Cat7"), summarize, total=sum(Claim_Amount))
+```
+
+Categoricas:
+
+```{r}
+summary(train_SMOTE)
+chisq.test(train_SMOTE$Cat4,train_SMOTE$Cat10)
+
+#Interpretación Chi-test:
+#Para las variables Cat10,Cat11 y Cat12 0.71,0.321 y 0.1287 no podemos rechazar la hipotesis nula de que las variables son independientes. Para el resto de las variables p-value es 0.
+
+library(polycor)
+
+pruebahetcor <- train_SMOTE[,c("Cat1","Cat2","Cat3","Cat4","Cat5","Cat6","Cat7","Cat8","Cat9","Cat10","Cat11","Cat12","OrdCat")]
+#Interpretación 
+corrhetcor <- hetcor(pruebahetcor)
+corrhetcor$correlations
+
+
+oneway.test(casos_completos$Claim_Amount~casos_completos$Var1, var.equal = TRUE)
+```
+VIF variables numéricas:
+```{r}
+dput(names(train_SMOTE))
+model <- glm(classification~Model_Year+ Cat9+ Cat10+ Var4+ Var5+Var8+ NVVar2+ NVVar3,train_SMOTE, family=binomial(link=logit))
+summary(model)
+pred <- predict(model,test_sample)
+model$coefficients
+anova(model,test="Chisq")
+install.packages("pscl")
+library(pscl)
+pR2(model)
+
+
+Rsq = summary(model)$r.squared
+Rsq
+1/(1-Rsq)
+```
+
+
+
+
+Podemos prescindir de las variables "Blind_Make" y "Blind_Model" porque están incluidas dentro de "Blind_Submodel", hemos comprobado que Blind_Submodel incluye esas variables:
+```{r}
+pruebasubmodel <- train[train$Blind_Submodel=="K.2.4",]
+summary(pruebasubmodel)
+```
+
+
 
 
 
@@ -441,7 +505,6 @@ train_2 <- train[is.na(train$Blind_Submodel),]
 dim(train_1)
 dim(train_2)
 ```
-
 seleccionamos solo las columnas con Missing Values para encontrar patrones, todas las variables son categóricas (Factor).
 
 ```{r}
