@@ -279,9 +279,24 @@ xy <- merge(x = xy, y = f, by = "Blind_Submodel", all.x = TRUE)
 xy$Cat8[is.na(xy$Cat8)] <- as.factor(xy$f[is.na(xy$Cat8)])
 summary(xy$Cat8)
 summary(train$Cat8)
-
 ```
-Hemos limpiado casi 1000 observaciones que se han quedado sin ningún NA:
+Elimino en xy las columnas que no necesito:
+```{r}
+xy$g <- NULL
+xy$f <- NULL
+xy$d <- NULL
+xy$b <- NULL
+xy$b.y <- NULL
+```
+Nuestro nuevo fichero de datos hemos conseguido limpiar más de 100000 observaciones.
+```{r}
+Data <- xy
+sum(complete.cases(train))
+sum(complete.cases(Data)) # Count of complete cases in a data frame named 'data'
+sum(!complete.cases(Data)) # Count of incomplete cases
+```
+
+Hemos limpiado casi 1000 observaciones con daño corporal que se han quedado sin ningún NA:
 ```{r}
 completeclaim <- xy[xy$Claim_Amount>0,]
 dim(completeclaim)
@@ -297,9 +312,11 @@ siniestros <- xy[xy$Claim_Amount>0,]
 dput(names(xy))
 cols <- c("Blind_Submodel", "Blind_Make", "Blind_Model", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5","Cat6", "Cat7", "Cat8", "Cat9", "Cat10", "Cat11", "Cat12", "OrdCat")
 siniestros <- siniestros[,cols]
-head(siniestros)
 train_aggr = aggr(siniestros, numbers=TRUE, sortVars=TRUE, labels=names(siniestros), cex.axis=.7, gap=3, ylab=c("Proportion of missingness","Missingness Pattern"))
 ```
+
+Si elimino Cat7 que es la variable que tiene 7.167.634 NA's: (los casos completos aumentan hasta 4.575.497 pero no sabemos si eliminarla puesto que puede ser significativa para el modelo)
+
 
 ##Problemas que nos encontramos en nuestra base de datos:
 
@@ -314,7 +331,7 @@ train_aggr = aggr(siniestros, numbers=TRUE, sortVars=TRUE, labels=names(siniestr
 
 Observaciones con Claim_Amount:
 ```{r}
-positiveclaim <- train[train$Claim_Amount>0,]
+positiveclaim <- Data[Data$Claim_Amount>0,]
 ```
 
 
@@ -331,42 +348,47 @@ En éste caso al tener más de 13 millones de observaciones podriamos realizar un 
 
 
 ```{r}    
-casos_completos <- train[complete.cases(train),]
+casos_completos <- Data[complete.cases(Data),]
 ```
 
 ```{r}
 casos_completos$classification <- ifelse(casos_completos$Claim_Amount==0,"0","1")
 casos_completos$classification <- as.factor(casos_completos$classification)
-casos_completos <- casos_completos[,4:37]
-casos_completos$Calendar_Year <- NULL
-casos_completos$Blind_Make <- NULL
-casos_completos$Blind_Model <- NULL
-casos_completos$Blind_Submodel <- NULL
+dput(names(casos_completos))
+cols <- c("Blind_Submodel", "Model_Year", "Cat1", "Cat2", "Cat3", 
+"Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "Cat10", "Cat11", 
+"Cat12", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6", 
+"Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3", "NVVar4", 
+"Claim_Amount", "classification")
+casos_completos <- casos_completos[,cols]
 
-##sample_casos_completos <- casos_completos[sample(nrow(casos_completos), 60000), ]
-sample_casos_completos <- casos_completos
-prop.table(table(sample_casos_completos$classification))
+prop.table(table(casos_completos$classification))
 ```    
 
 CARET, partimos la base de datos en dos:
 ```{r}
 library(caret)
 set.seed(1234)
-splitIndex <- createDataPartition(sample_casos_completos$classification, p = .50,list = FALSE,times = 1)
-train_sample <- sample_casos_completos[ splitIndex,]
+splitIndex <- createDataPartition(casos_completos$classification, p = .50,list = FALSE,times = 1)
+train_sample <- casos_completos[ splitIndex,]
 prop.table(table(train_sample$classification))
-test_sample <- sample_casos_completos[-splitIndex,]
+test_sample <- casos_completos[-splitIndex,]
 test_sample_clas <- test_sample$classification
 test_sample$classification <- NULL
 ```
+
 SMOTE, over-resampling.
 
 ```{r}
 library(DMwR)
-train_SMOTE <- SMOTE(classification~.,casos_completos,perc.over = 100,perc.under = 200)
+train_SMOTE <- SMOTE(classification~.,train_sample,perc.over = 100,perc.under = 200)
+prop.table(table(train_SMOTE$classification))
 table(train_SMOTE$classification)
+head(train_SMOTE)
 
 ```
+
+--------------
 ROSE para hacer el resampling de la base de datos, ,por defecto utiliza el método Both, una mezcla de Over and Under. El problema de ROSE son los datos que genera.
 ```{r}
 library(ROSE)
@@ -376,7 +398,7 @@ table(train_sample$classification)
 
 ```               
 El train_sample tenía 20000 observaciones con 151 positivas. ROSE nos deja la base de datos con 10000 observaciones, las reduce pero nos amplia a 10000 las positivas.
-
+--------------------
 
 ##Multicolinearidad de las variables, eliminación variables.
 
@@ -392,7 +414,7 @@ cv.test = function(x,y) {
 }
 
 #Cramer V
-with(train_SMOTE, cv.test(Cat2, Cat8))
+with(train_SMOTE, cv.test(Cat1, Cat12))
 ```
 
 correlationmatrix <- cor(train_SMOTE[,15:22])
