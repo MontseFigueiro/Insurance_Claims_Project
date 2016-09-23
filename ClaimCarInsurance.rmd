@@ -227,12 +227,12 @@ Cat5 <- train[,c("Blind_Submodel","Cat5")]
 Cat5 <- Cat5[complete.cases(Cat5),]
 Cat7 <- train[,c("Blind_Submodel","Cat7")]
 Cat7 <- Cat7[complete.cases(Cat7),]
-
-nas <- xy[is.na(xy$Cat1),]
-head(nas)
+Cat8 <- train[,c("Blind_Submodel","Cat8")]
+Cat8 <- Cat8[complete.cases(Cat8),]
 
 library(dplyr)
 library(plyr)
+
 #CAT1
 a <- Cat1 %>% group_by(Blind_Submodel) %>% summarize (b =names(which.max(table(Cat1))))
 a <- as.data.frame(a)
@@ -258,7 +258,7 @@ xy <- merge(x = xy, y = d, by = "Blind_Submodel", all.x = TRUE)
 xy$Cat5[is.na(xy$Cat5)] <- as.factor(xy$d[is.na(xy$Cat5)])
 summary(xy$Cat5)
 summary(train$Cat5)
-```
+
 #CAT7
 
 c <- Cat7 %>% group_by(Blind_Submodel) %>% summarize (b =names(which.max(table(Cat7))))
@@ -269,8 +269,19 @@ xy <- merge(x = xy, y = c, by = "Blind_Submodel", all.x = TRUE)
 xy$Cat7[is.na(xy$Cat7)] <- as.factor(xy$b[is.na(xy$Cat7)])
 summary(xy$Cat7)
 summary(train$Cat7)
-```
 
+#CAT8
+f <- Cat8 %>% group_by(Blind_Submodel) %>% summarize (f =names(which.max(table(Cat8))))
+f <- as.data.frame(f)
+f$Blind_Submodel <- as.factor(f$Blind_Submodel)
+f$f <- as.factor(f$f)
+xy <- merge(x = xy, y = f, by = "Blind_Submodel", all.x = TRUE)
+xy$Cat8[is.na(xy$Cat8)] <- as.factor(xy$f[is.na(xy$Cat8)])
+summary(xy$Cat8)
+summary(train$Cat8)
+
+```
+Hemos limpiado casi 1000 observaciones que se han quedado sin ningún NA:
 ```{r}
 completeclaim <- xy[xy$Claim_Amount>0,]
 dim(completeclaim)
@@ -278,6 +289,16 @@ comp <- completeclaim[complete.cases(completeclaim),]
 dim(comp)
 comp <- casos_completos[casos_completos$Claim_Amount>0,]
 dim(comp)
+```
+VISUALIZACIÓN CON VIM DE SOLO LOS MISSING VALUES CASOS CON IMPORTE:
+```{r}
+library(VIM)
+siniestros <- xy[xy$Claim_Amount>0,]
+dput(names(xy))
+cols <- c("Blind_Submodel", "Blind_Make", "Blind_Model", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5","Cat6", "Cat7", "Cat8", "Cat9", "Cat10", "Cat11", "Cat12", "OrdCat")
+siniestros <- siniestros[,cols]
+head(siniestros)
+train_aggr = aggr(siniestros, numbers=TRUE, sortVars=TRUE, labels=names(siniestros), cex.axis=.7, gap=3, ylab=c("Proportion of missingness","Missingness Pattern"))
 ```
 
 ##Problemas que nos encontramos en nuestra base de datos:
