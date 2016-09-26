@@ -235,6 +235,25 @@ dim(agregado_claim_amount)
     * Métodos de penalización como Ridge o Lasso funcionan bien en regressiones binomial.
     * logit and probit aproximan el 0 al mismo ratio que el 1.
 
+
+##SELECCION VARIABLES
+
+###Categóricas a dummies de los casos completos
+
+```{r}
+library(caret)
+casos_completos <- train[complete.cases(train),]
+dim(casos_completos)
+dummies <- predict(dummyVars(~Cat1+Cat2+Cat3+Cat4+Cat5+Cat6+Cat7+Cat8+Cat9+Cat10+Cat11+Cat12+OrdCat+NVCat,data=casos_completos),newdata=casos_completos)
+dummies <- as.data.frame(dummies)
+head(casos_completos)
+head(entrenamiento)
+prueba <- casos_completos
+entrenamiento <- cbind(prueba,dummies)
+
+```
+
+
 ##FICHERO TEST ANALISIS DE DATOS
 
 ANALIZAMOS LAS CATEGORICAS EN EL FICHERO TEST (no hay missing values)
@@ -250,33 +269,40 @@ test$Model <- as.factor(ifelse(is.na(test$Blind_Submodel),test$Blind_Submodel,pa
 ````
 
 ```{r}
-cols <- c("Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "Cat10","Cat11", "Cat12", "OrdCat", "Model")
+cols <- c("Cat1", "Cat2", "Cat3", "Cat4","Cat5" "Cat6", "Cat7", "Cat8", "Cat9", "Cat10","Cat11", "Cat12", "OrdCat", "Model")
 test2 <- test[,cols]
 modelos_test <- as.data.frame(test2)
 modelos_test$count <- as.numeric(1)
 
-agregado_modelos_test <-aggregate(count~Model+Cat1+Cat4+Cat5+Cat6+Cat7,modelos_test,sum)
+agregado_modelos_test <-aggregate(count~Model+Cat1+Cat4+Cat6+Cat7,modelos_test,sum)
 agregado_modelos_test$count <- as.numeric(agregado_modelos_test$count)
-duplicated <- anyDuplicated(agregado_modelos_test$Model)
-agregado_modelos_test[agregado_modelos_test$Model=="Z.27.21999",]
-d <- pruebamerge[pruebamerge$Model=="Z.27.21999",]
-head(d)
-head(agregado_modelos_test[order(-agregado_modelos_test[,7]),])
+anyDuplicated(agregado_modelos_test$Model)
+####agregado_modelos_test[agregado_modelos_test$Model=="Z.27.21999",]
+head(agregado_modelos_test[order(-agregado_modelos_test[,6]),])
 dim(agregado_modelos_test)#Agregando por Model y las categóricas cat1+cat4+cat5+cat6+cat7 nos da el mismo número de modelos.
 
 str(test$Model)#tenemos 3646 modelos diferentes
 
 #Merge with train, vamos a detectar los casos en los que el Modelo coincide en el fichero test y en el fichero train:
-pruebamerge <- merge(x = train, y = agregado_modelos_test , by = "Model", all.x = TRUE)
-casos_coincidentes <- pruebamerge[!is.na(pruebamerge$count),]
-dim(casos_coincidentes)
+y <- merge(x = train, y = agregado_modelos_test , by = "Model", all.x = TRUE)
+head(y)
+casos_coincidentes <- y[!is.na(y$count),]
+d <- count(unique(casos_coincidentes$Model))
+sum(d$freq)#modelos que estan en train y en test
+f <-count(unique(train$Model))
+sum(f$freq) #modelos totales en train
+g <- count(unique(test$Model))
+sum(g$freq)#modelos totales en test
 sum(complete.cases(casos_coincidentes)) # 3.725.632 están completos
 sum(!complete.cases(casos_coincidentes))#48967 tienen NA
 ```
+
+
 ```{r}
 #De los Casos_coincidentes hay 48967 observaciones en train que tienen NA y que podemos corregir:
 pruebamerge_NA <- casos_coincidentes[!complete.cases(casos_coincidentes),]
-
+head(pruebamerge_NA)
+sum(pruebamerge_NA$Claim_Amount)
 ```
 ##Tratamiento Missing values
 
