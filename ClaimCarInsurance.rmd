@@ -250,9 +250,18 @@ head(casos_completos)
 head(entrenamiento)
 prueba <- casos_completos
 entrenamiento <- cbind(prueba,dummies)
+entrenamiento$clasificacion <- as.factor(ifelse(entrenamiento$Claim_Amount==0,"0","1"))
+cols <- c("Calendar_Year","Model_Year" , "Var1", "Var2", "Var3", "Var4", "Var5", "Var6", "Var7", "Var8", "NVVar1", "NVVar2", "NVVar3", "NVVar4", "Cat1.A", "Cat1.B", "Cat1.C","Cat1.D", "Cat1.E", "Cat1.F", "Cat1.G", "Cat1.H", "Cat1.I", "Cat1.J", "Cat2.A", "Cat2.B", "Cat2.C", "Cat3.A", "Cat3.B", "Cat3.C", "Cat3.D", "Cat3.E", "Cat3.F",  "Cat4.A","Cat4.B","Cat4.C", "Cat5.A", "Cat5.B", "Cat5.C", "Cat6.B", "Cat6.C", "Cat6.D", "Cat6.E", "Cat6.F", "Cat7.A", "Cat7.B","Cat7.C", "Cat7.D", "Cat8.A", "Cat8.B", "Cat8.C", "Cat9.A", "Cat9.B", "Cat10.A", "Cat10.B","Cat10.C","Cat11.A", "Cat11.B", "Cat11.C", "Cat11.D", "Cat11.E", "Cat11.F", "Cat12.", "Cat12.A", "Cat12.B", "Cat12.C", "Cat12.D", "Cat12.E", "Cat12.F", "OrdCat.1", "OrdCat.2", "OrdCat.3", "OrdCat.4","OrdCat.5", "OrdCat.6", "OrdCat.7", "NVCat.A", "NVCat.B", "NVCat.C", "NVCat.D", "NVCat.E","NVCat.F", "NVCat.G", "NVCat.H", "NVCat.I","NVCat.J", "NVCat.K", "NVCat.L", "NVCat.M", "NVCat.N","NVCat.O","clasificacion")
+#dput(names(entrenamiento))
+entredf <- entrenamiento[,cols]
+prop.table(table(entredf$clasificacion))
+```
+Regresion Lineal con dataframe sin corregir el desequilibrio en los datos:
+```{r}
+
+
 
 ```
-
 
 ##FICHERO TEST ANALISIS DE DATOS
 
