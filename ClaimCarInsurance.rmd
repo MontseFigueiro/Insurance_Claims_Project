@@ -91,7 +91,7 @@ train[6:20] <- lapply(train[6:20], as.factor)
 train$NVCat <- as.factor(train$NVCat)
 train$OrdCat <- as.factor(train$OrdCat)
 ```
-
+----------------------------
 Tenemos el año de la póliza y el año del vehículo, hemos comprobado que ninguna de las variables numérica se corresponde con la antigûedad del coche pero podemos calcularla y puede ser un dato muy interesante:
 
 ```{r}
@@ -103,7 +103,7 @@ Tenemos 155.991 coches con edades negativas,las vamos a dejar a 0 porque no tien
 ```{r}
 train$EdadVehiculo <- ifelse(train$EdadVehiculo<0,0,train$EdadVehiculo)
 ```
-
+------------------------------
 Tratamos a los ? como NA:
 ```{r}
 train[train=="?"] <- NA
@@ -114,26 +114,27 @@ Contamos los casos completos (no tienen ningún NA) y los casos incompletos (tien
 sum(complete.cases(train)) # Count of complete cases in a data frame named 'data'
 sum(!complete.cases(train)) # Count of incomplete cases
 ```
+Tenemos 9.457.989 observaciones con algún NA y 3.726.301 sin NA.
 
-
-##Visualización e imputación de NA's
+##Visualización de NA's
 ```{r}
 library(VIM)
 library(mice)
 ```
 ##Visualización con VIM de las variables con NA:
 
+Tabla resumen Missing Values por Variable:
 ```{r}
-cols <- rownames(TablaNas_Positive)
-cols_with_NA <- train[,cols]
-head(cols_with_NA)
+Tabla_NAs <- as.data.frame(sapply(train, function(x) sum(is.na(x))))
+colnames(Tabla_NAs) <- c("NumNAs")
+Tabla_NAs$Porcentaje <- round((Tabla_NAs$NumNAs/nrow(train))*100,2)
 ```
-```{r}
-jpeg("Missing_Pattern.jpeg")
-train_aggr = aggr(cols_with_NA, numbers=TRUE, sortVars=TRUE, labels=names(cols_with_NA), cex.axis=.7, gap=3, ylab=c("Proportion of missingness","Missingness Pattern"))
-dev.off()
-```
+Tenemos en total 23.438.318 de Missing Values, en el campo Porcentaje se indica el tanto por ciento de NA's sobre el total de observaciones de esa variable.
 
+Seleccionamos de la tabla solo las variables que tienen NAs:
+```{r}
+TablaNas_Positive <- Tabla_NAs[Tabla_NAs$NumNAs>0,]
+```
 Como hemos comprobado en nuestra tabla "TablaNAs_Positive" solamente las variables categóricas tienen Missing Values:
 
 |Variable|Número de NA|Porcentaje|
@@ -154,50 +155,136 @@ Como hemos comprobado en nuestra tabla "TablaNAs_Positive" solamente las variabl
 |OrdCat       |     7546  |     0.06|
 
 
-Vemos que hay relación entre la variable Blind_Submodel y las categóricas, siendo Cat1,Cat4,Cat5,Cat6,Cat7 iguales cuando se trata del mismo modelo de vehículo.
-
-k.7.3
 ```{r}
-modelok73 <- train[train$Blind_Submodel=="K.7.3",]
-cols <- c("Blind_Submodel","Cat1","Cat2","Cat3","Cat4","Cat5","Cat6","Cat7","Cat8","Cat9","Cat10","Cat11","Cat12","OrdCat")
-modelok73 <- modelok73[,cols]
-uniquemodelok73 <-lapply(modelok73,unique)
-uniquemodelok73
+cols <- rownames(TablaNas_Positive)
+cols_with_NA <- train[,cols]
 ```
 
+```{r}
+jpeg("Missing_Pattern.jpeg")
+train_aggr = aggr(cols_with_NA, numbers=TRUE, sortVars=TRUE, labels=names(cols_with_NA), cex.axis=.7, gap=3, ylab=c("Proportion of missingness","Missingness Pattern"))
+dev.off()
+```
+
+##Problema con "Imbalanced Training Data", más del 99% de los datos están clasificados como 0.
+
+Tanto en el fichero Train como en el de Casos_Completos el 99% de los datos está clasificado como 0 con lo que cualquie predicción que hagamos nos va a dar 0.
+
+```{r}    
+data <- train
+```
+
+```{r}
+data$Claim_Amount <- ifelse(data$Claim_Amount==0,"0","1")
+prop.table(table(data$Claim_Amount))
+```    
+El 99,27% de las observaciones no tienen daño corporal, el 0,73%
+
+##Multicolinealidad entre variables.
+
+Blind_Submodel unido a Model_Year nos da el modelo exacto del vehículo y para un mismo modelo las catégoricas desde Cat1 a Cat9 son iguales.
+
+Modelo k.7.3
+```{r}
+modelok73 <- train[train$Blind_Submodel=="K.7.3",]
+cols <- c("Blind_Submodel","Model_Year","Cat1","Cat2","Cat3","Cat4","Cat5","Cat6","Cat7","Cat8","Cat9","Cat10","Cat11","Cat12","OrdCat")
+modelok73 <- modelok73[,cols]
+head(modelok73)
+uniquemodelok73 <-lapply(modelok73,unique)
+```
+
+Para visualizar mejor el número de modelos diferentes que tenemos unificamos en una sola variable Blind_Submodel y Model_Year:
+
+```{r}
+train$Model <- as.factor(ifelse(is.na(train$Blind_Submodel),train$Blind_Submodel,paste(train$Blind_Submodel, as.factor(train$Model_Year), sep='')))
+````
+
+Agregado del Modelo, número de observaciones para cada Modelo:
+```{r}
+modelos <- as.data.frame(train$Model)
+modelos$count <- as.numeric(1)
+agregado_modelos <- aggregate(count~`train$Model`,modelos,sum)
+agregado_modelos$count <- as.numeric(agregado_modelos$count)
+dim(agregado_modelos)
+#Añadimos una fila con los NA que la función aggregate excluye
+modelos_NA <- train[is.na(train$Model),]
+dim(modelos_NA)
+newrow <- c("NA",8431)
+agregado_modelos <- rbind(agregado_modelos,newrow)
+agregado_modelos$count <- as.numeric(agregado_modelos$count)
+head(agregado_modelos[order(-agregado_modelos[,2]), ])
+dim(agregado_modelos)
+```
+
+Agregado de Blind_Submodel, observaciones con más Claim_Amount:
+
+```{r}
+agregado_claim_amount <- aggregate(Claim_Amount~Blind_Submodel+Model_Year,train,sum)
+head(agregado_claim_amount[order(-agregado_claim_amount[,3]), ])
+dim(agregado_claim_amount)
+```
+
+##Problemas que nos encontramos en nuestra base de datos:
+
+* Número elevado de Missing Values
+* Multicolinealidad 
+* Unbalanced Data. 99% Claim_Amount = 0.
+    * Under-Sampling: Eliminamos observaciones = 0, solo vale para ahorrar tiempo, perdemos información.
+    * Over-Sampling: Implica hacer copias de la Clase mínima causando overfitting.
+    * Este no suele ser un problema para la regressión logística.
+    * Métodos de penalización como Ridge o Lasso funcionan bien en regressiones binomial.
+    * logit and probit aproximan el 0 al mismo ratio que el 1.
+
+##FICHERO TEST ANALISIS DE DATOS
+
+ANALIZAMOS LAS CATEGORICAS EN EL FICHERO TEST (no hay missing values)
+Los NA han sido eliminados del fichero test, vamos a cruzar los modelos de coche de test con el train.
+
+El número de niveles que tenemos en las categóricas no es el mismo para el test que para el train:
+```{}
+summary(train$Cat1)
+summary(test$Cat1)
+```
+```{r}
+test$Model <- as.factor(ifelse(is.na(test$Blind_Submodel),test$Blind_Submodel,paste(test$Blind_Submodel, as.factor(test$Model_Year), sep='')))
+````
+
+```{r}
+cols <- c("Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "Cat10","Cat11", "Cat12", "OrdCat", "Model")
+test2 <- test[,cols]
+modelos_test <- as.data.frame(test2)
+modelos_test$count <- as.numeric(1)
+
+agregado_modelos_test <-aggregate(count~Model+Cat1+Cat4+Cat5+Cat6+Cat7,modelos_test,sum)
+agregado_modelos_test$count <- as.numeric(agregado_modelos_test$count)
+duplicated <- anyDuplicated(agregado_modelos_test$Model)
+agregado_modelos_test[agregado_modelos_test$Model=="Z.27.21999",]
+d <- pruebamerge[pruebamerge$Model=="Z.27.21999",]
+head(d)
+head(agregado_modelos_test[order(-agregado_modelos_test[,7]),])
+dim(agregado_modelos_test)#Agregando por Model y las categóricas cat1+cat4+cat5+cat6+cat7 nos da el mismo número de modelos.
+
+str(test$Model)#tenemos 3646 modelos diferentes
+
+#Merge with train, vamos a detectar los casos en los que el Modelo coincide en el fichero test y en el fichero train:
+pruebamerge <- merge(x = train, y = agregado_modelos_test , by = "Model", all.x = TRUE)
+casos_coincidentes <- pruebamerge[!is.na(pruebamerge$count),]
+dim(casos_coincidentes)
+sum(complete.cases(casos_coincidentes)) # 3.725.632 están completos
+sum(!complete.cases(casos_coincidentes))#48967 tienen NA
+```
+```{r}
+#De los Casos_coincidentes hay 48967 observaciones en train que tienen NA y que podemos corregir:
+pruebamerge_NA <- casos_coincidentes[!complete.cases(casos_coincidentes),]
+
+```
 ##Tratamiento Missing values
 
 Han sido borrados del Test dataset pero no del training dataset. Están como "?". 
 ¿¿Tenemos casillas en blanco???
 Hay 4 variables con más de 4 millones de NA's
 
-Tabla resumen Missing Values por Variable:
-```{r}
-Tabla_NAs <- as.data.frame(sapply(train, function(x) sum(is.na(x))))
-colnames(Tabla_NAs) <- c("NumNAs")
-Tabla_NAs$Porcentaje <- round((Tabla_NAs$NumNAs/nrow(train))*100,2)
-```
-Tenemos en total 23.438.318 de Missing Values, en el campo Porcentaje se indica el tanto por ciento de NA's sobre el total de observaciones de esa variables.
 
-Seleccionamos de la tabla solo las variables que tienen NAs:
-
-```{r}
-TablaNas_Positive <- Tabla_NAs[Tabla_NAs$NumNAs>0,]
-TablaNas_Positive
-```
-
-Agregado de Blind_Submodel, número de observaciones para cada submodelo:
-```{r}
-submodelos <- as.data.frame(train$Blind_Submodel)
-submodelos$count <- as.numeric(1)
-agregado_submodelos <- aggregate(count~`train$Blind_Submodel`,submodelos,sum)
-#Añadimos una fila con los NA que la función aggregate excluye
-modelos_NA <- count(is.na(train$Blind_Submodel))
-newrow <- c("NA",8431)
-agregado_submodelos <- rbind(agregado_submodelos,newrow)
-agregado_submodelos$count <- as.numeric(agregado_submodelos$count)
-head(agregado_submodelos[order(-agregado_submodelos[,2]), ])
-```
 Hay 8431 observaciones con 48 siniestros con daño corporal a los que les falta Blind_Make, Blind_Model y Blind_Submodel:
 
 ```{r}
@@ -294,10 +381,12 @@ Data <- xy
 sum(complete.cases(train))
 sum(complete.cases(Data)) # Count of complete cases in a data frame named 'data'
 sum(!complete.cases(Data)) # Count of incomplete cases
+
 ```
 
 Hemos limpiado casi 1000 observaciones con daño corporal que se han quedado sin ningún NA:
 ```{r}
+
 completeclaim <- xy[xy$Claim_Amount>0,]
 dim(completeclaim)
 comp <- completeclaim[complete.cases(completeclaim),]
@@ -315,24 +404,8 @@ siniestros <- siniestros[,cols]
 train_aggr = aggr(siniestros, numbers=TRUE, sortVars=TRUE, labels=names(siniestros), cex.axis=.7, gap=3, ylab=c("Proportion of missingness","Missingness Pattern"))
 ```
 
-Si elimino Cat7 que es la variable que tiene 7.167.634 NA's: (los casos completos aumentan hasta 4.575.497 pero no sabemos si eliminarla puesto que puede ser significativa para el modelo)
 
 
-##Problemas que nos encontramos en nuestra base de datos:
-
-* Número elevado de Missing Values
-* Multicolinealidad 
-* Datos desproporcionados. 99% Claim_Amount = 0.
-    * Under-Sampling: Eliminamos observaciones = 0, solo vale para ahorrar tiempo, perdemos información.
-    * Over-Sampling: Implica hacer copias de la Clase mínima causando overfitting.
-    * Este no suele ser un problema para la regressión logística.
-    * Métodos de penalización como Ridge o Lasso funcionan bien en regressiones binomial.
-    * logit and probit aproximan el 0 al mismo ratio que el 1.
-
-Observaciones con Claim_Amount:
-```{r}
-positiveclaim <- Data[Data$Claim_Amount>0,]
-```
 
 
 ESQUEMA A REALIZAR:
@@ -340,30 +413,6 @@ ESQUEMA A REALIZAR:
 Train >>> casos_completos >>> Sample_casos_completos >>> Eliminar ID >>> Partición Train/Test >>> Oversampling >>> "Data Frame compensado" >>> Eliminar Variables
 
 
-##Problema con "Imbalanced Training Data", más del 99% de los datos están clasificados como 0.
-
-Tanto en el fichero Train como en el de Casos_Completos el 99% de los datos está clasificado como 0 con lo que cualquie predicción que hagamos nos va a dar 0.
-
-En éste caso al tener más de 13 millones de observaciones podriamos realizar un under-sampling, que consiste en disminuir el número de observaciones con Claim_Amount=0.
-
-
-```{r}    
-casos_completos <- Data[complete.cases(Data),]
-```
-
-```{r}
-casos_completos$classification <- ifelse(casos_completos$Claim_Amount==0,"0","1")
-casos_completos$classification <- as.factor(casos_completos$classification)
-dput(names(casos_completos))
-cols <- c("Blind_Submodel", "Model_Year", "Cat1", "Cat2", "Cat3", 
-"Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "Cat10", "Cat11", 
-"Cat12", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6", 
-"Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3", "NVVar4", 
-"Claim_Amount", "classification")
-casos_completos <- casos_completos[,cols]
-
-prop.table(table(casos_completos$classification))
-```    
 
 CARET, partimos la base de datos en dos:
 ```{r}
