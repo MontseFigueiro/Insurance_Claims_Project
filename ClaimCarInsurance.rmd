@@ -74,7 +74,7 @@ summary(train)
 
 ```{r}
 memory.limit()
-memory.limit(size=45960)
+memory.limit(size=60000)
 ```
 
 ###Cambiamos los tipos de variables:
@@ -115,6 +115,16 @@ sum(complete.cases(train)) # Count of complete cases in a data frame named 'data
 sum(!complete.cases(train)) # Count of incomplete cases
 ```
 Tenemos 9.457.989 observaciones con algún NA y 3.726.301 sin NA.
+#Comprobacion filas duplicadas
+```{r}
+anyDuplicated(train)
+train[duplicated(train),]
+```
+
+###Número de casos con daño corporal.
+sum(train$Claim_Amount==0)
+sum(train$Claim_Amount!=0)
+
 
 ##Visualización de NA's
 ```{r}
@@ -166,6 +176,90 @@ train_aggr = aggr(cols_with_NA, numbers=TRUE, sortVars=TRUE, labels=names(cols_w
 dev.off()
 ```
 
+##IMPUTACIÓN MISSING VALUES 
+
+En Cat1, Cat2, Cat3, Cat4, Cat5, Cat6, Cat7, Cat8, Cat9 se da la circunstancia de que no varían para el mismo Blind_Submodel y Model_Year, son iguales independientemente de la póliza, del asegurado y de la household_ID, con lo que summarizamos esta información para reducir el caso de Missing Values que tenemos en el dataset:
+
+###Agregamos Variables Categóricas por Submodel
+
+```{r}
+#El fichero train que se utiliza tiene los ? y no han sido sustituidos por NA porque sino aggregate los ignora.
+submodel1 <- aggregate(Claim_Amount~Blind_Submodel+Cat1+Cat2+Cat3+Cat4+ Cat5+ Cat6+Cat7+Cat8+Cat9,train,sum)
+submodel1[submodel1=="?"] <- NA
+data<- submodel1[!is.na(submodel1$Blind_Submodel),]
+data <- data[order(data$Blind_Submodel),]
+#MICE no acepta más de 50 niveles, con lo que tenemos que quitar del dataset Blind_Submodel porque 
+cols <- c("Claim_Amount","Cat1","Cat2","Cat3","Cat4", "Cat5", "Cat6", "Cat7", "Cat8","Cat9")
+submodels <- data[,cols]
+```
+###Imputación Missing Values
+```{r}
+
+library(mice)
+imp <- mice(data=submodels, m=5,maxit=20,method= "polyreg",MaxNWts = 2000)
+imp2 <- mice(data=submodels, m=5,maxit=5,method= "polyreg",MaxNWts = 2000)
+imp3 <- mice(data=submodels, m=3,maxit=50,method= "polyreg",MaxNWts = 2000)
+modelFit <- with(imp,lm(Claim_Amount~ Cat1+Cat2+Cat3+Cat4+ Cat5+ Cat6+Cat7+Cat8+Cat9))
+mi.reg.pool <- pool(modelFit)
+summary(mi.reg.pool)
+pool.r.squared(modelFit)
+
+#Completamos los NA con los datos de las 5 imputaciones (la dimensión de la tabla es 5x6832)
+datos <- complete(imp,action="long")
+
+#Añadimos a la tabla original el mismo .id que nos da Mice que es el nombre de la fila (rowname)
+data$.id <- rownames(data)
+
+#Seleccionamos el valor más frecuente para cada categórica y para cada id.
+Cat1 <- melt(as.table(with(datos,by(Cat1,.id,function(xx)names(which.max(table(xx)))))))
+Cat2 <- melt(as.table(with(datos,by(Cat2,.id,function(xx)names(which.max(table(xx)))))))
+Cat3 <- melt(as.table(with(datos,by(Cat3,.id,function(xx)names(which.max(table(xx)))))))
+Cat4 <- melt(as.table(with(datos,by(Cat4,.id,function(xx)names(which.max(table(xx)))))))
+Cat5 <- melt(as.table(with(datos,by(Cat5,.id,function(xx)names(which.max(table(xx)))))))
+Cat6 <- melt(as.table(with(datos,by(Cat6,.id,function(xx)names(which.max(table(xx)))))))
+Cat7 <- melt(as.table(with(datos,by(Cat7,.id,function(xx)names(which.max(table(xx)))))))
+Cat8 <- melt(as.table(with(datos,by(Cat8,.id,function(xx)names(which.max(table(xx)))))))
+Cat9 <- melt(as.table(with(datos,by(Cat9,.id,function(xx)names(which.max(table(xx)))))))
+
+most_freq <- cbind(Cat1,Cat2$value,Cat3$value,Cat4$value,Cat5$value,Cat6$value,Cat7$value,Cat8$value,Cat9$value)
+colnames(most_freq) <- c(".id","Cat1m","Cat2m","Cat3m","Cat4m","Cat5m","Cat6m","Cat7m","Cat8m","Cat9m")
+
+datadf <- merge(data,most_freq,by=".id",all.x=TRUE) 
+
+#Toca pasarlo a "train" para eso vamos a crear un id que va a ser la unión de Blind_Submodel+Cat1+Cat2.....Cat9, en las dos tablas para poder hacer el merge con train.
+
+train$ID <- paste(train$Blind_Submodel,train$Cat1,train$Cat2,train$Cat3,train$Cat4,train$Cat5,train$Cat6,train$Cat7,train$Cat8,train$Cat9,sep="")
+datadf$ID <- paste(datadf$Blind_Submodel,datadf$Cat1,datadf$Cat2,datadf$Cat3,datadf$Cat4,datadf$Cat5,datadf$Cat6,datadf$Cat7,datadf$Cat8,datadf$Cat9,sep="")
+train$ID <- as.factor(train$ID)
+datadf$ID <- as.factor(datadf$ID)
+datadf <- datadf[,13:22]
+
+traindf1 <- train[1:7000000,]
+traindf2 <- train[7000001:13184290,]
+
+traindf1 <- merge(traindf1,datadf,by="ID",all.x = TRUE)
+traindf2 <- merge(traindf2,datadf,by="ID",all.x = TRUE)
+
+na <- traindf[is.na(traindf$Cat1m),]
+```
+
+
+
+si agrupamos house+submodel+model_year nos da cuantas polizas diferentes tenemos en el dataset "train", muchas observaciones no son independientes se trata del mismo vehículo asegurado en diferentes años, pero hay variables que no se mantienen constantes (como Cat10, Cat11, Cat12):
+
+```{r}
+polizasdifcoches <-aggregate(Claim_Amount~Blind_Submodel+Model_Year+Household_ID,train,sum)#7.361.942 polizas pertenecen a coches diferentes, podría existir algún coche que un año estuviera asegurado en una casa y otro año en otra pero sería la excepción.
+dim(polizasdifcoches)#7361942 no tiene en cuenta los NA en Blind_Submodel
+```
+
+
+
+train_aggr = aggr(train_2005, numbers=TRUE, sortVars=TRUE, labels=names(train_2005), cex.axis=.7, gap=3, ylab=c("Proportion of missingness","Missingness Pattern"))
+train_2006 <- train[train$Calendar_Year==2006,]
+dim(train_2006)
+train_2007 <- train[train$Calendar_Year==2007,]
+dim(train_2007)
+
 ##Problema con "Imbalanced Training Data", más del 99% de los datos están clasificados como 0.
 
 Tanto en el fichero Train como en el de Casos_Completos el 99% de los datos está clasificado como 0 con lo que cualquie predicción que hagamos nos va a dar 0.
@@ -178,7 +272,15 @@ data <- train
 data$Claim_Amount <- ifelse(data$Claim_Amount==0,"0","1")
 prop.table(table(data$Claim_Amount))
 ```    
-El 99,27% de las observaciones no tienen daño corporal, el 0,73%
+El 99,27% de las observaciones no tienen daño corporal, el 0,73%.
+
+Al existir umbalanced data nos interesa conocer los datos de los coches que tienen siniestro para perder la mínima información posible.
+
+```{r}
+siniestros <- train[train$Claim_Amount>0,]
+siniestros_nocompletos <- siniestros[complete.cases(siniestros),]
+dim(siniestros_nocompletos)
+```
 
 ##Multicolinealidad entre variables.
 
@@ -235,34 +337,126 @@ dim(agregado_claim_amount)
     * Métodos de penalización como Ridge o Lasso funcionan bien en regressiones binomial.
     * logit and probit aproximan el 0 al mismo ratio que el 1.
 
+##knn para imputacion de missing values
+```{r}
+install.packages("scrime")
+library(scrime)
+cols <- c("Cat2","Cat7")
+prueba <- train[,cols]
+head(prueba)
+prueba$Cat2 <- sapply(prueba$Cat2,switch,'A'=1,'B'=2,'C'= 3)
+head(prueba)
+knncatimpute()
+```
 
 ##SELECCION VARIABLES
 
 ###Categóricas a dummies de los casos completos
-
+entredf <- read.csv("entredf.csv")
+head(entredf)
+entredf$X <- NULL
+dim(entredf)
 ```{r}
 library(caret)
 casos_completos <- train[complete.cases(train),]
-dim(casos_completos)
 dummies <- predict(dummyVars(~Cat1+Cat2+Cat3+Cat4+Cat5+Cat6+Cat7+Cat8+Cat9+Cat10+Cat11+Cat12+OrdCat+NVCat,data=casos_completos),newdata=casos_completos)
 dummies <- as.data.frame(dummies)
-head(casos_completos)
-head(entrenamiento)
-prueba <- casos_completos
-entrenamiento <- cbind(prueba,dummies)
+entrenamiento <- cbind(casos_completos,dummies)
 entrenamiento$clasificacion <- as.factor(ifelse(entrenamiento$Claim_Amount==0,"0","1"))
-cols <- c("Calendar_Year","Model_Year" , "Var1", "Var2", "Var3", "Var4", "Var5", "Var6", "Var7", "Var8", "NVVar1", "NVVar2", "NVVar3", "NVVar4", "Cat1.A", "Cat1.B", "Cat1.C","Cat1.D", "Cat1.E", "Cat1.F", "Cat1.G", "Cat1.H", "Cat1.I", "Cat1.J", "Cat2.A", "Cat2.B", "Cat2.C", "Cat3.A", "Cat3.B", "Cat3.C", "Cat3.D", "Cat3.E", "Cat3.F",  "Cat4.A","Cat4.B","Cat4.C", "Cat5.A", "Cat5.B", "Cat5.C", "Cat6.B", "Cat6.C", "Cat6.D", "Cat6.E", "Cat6.F", "Cat7.A", "Cat7.B","Cat7.C", "Cat7.D", "Cat8.A", "Cat8.B", "Cat8.C", "Cat9.A", "Cat9.B", "Cat10.A", "Cat10.B","Cat10.C","Cat11.A", "Cat11.B", "Cat11.C", "Cat11.D", "Cat11.E", "Cat11.F", "Cat12.", "Cat12.A", "Cat12.B", "Cat12.C", "Cat12.D", "Cat12.E", "Cat12.F", "OrdCat.1", "OrdCat.2", "OrdCat.3", "OrdCat.4","OrdCat.5", "OrdCat.6", "OrdCat.7", "NVCat.A", "NVCat.B", "NVCat.C", "NVCat.D", "NVCat.E","NVCat.F", "NVCat.G", "NVCat.H", "NVCat.I","NVCat.J", "NVCat.K", "NVCat.L", "NVCat.M", "NVCat.N","NVCat.O","clasificacion")
+cols <- c("Calendar_Year","Model_Year" , "Var1", "Var2", "Var3", "Var4", "Var5", "Var6", "Var7", "Var8", "NVVar1", "NVVar2", "NVVar3", "NVVar4", "Cat1.A", "Cat1.B", "Cat1.C","Cat1.D", "Cat1.E", "Cat1.F", "Cat1.G", "Cat1.H", "Cat1.I", "Cat1.J", "Cat2.A", "Cat2.B", "Cat2.C", "Cat3.A", "Cat3.B", "Cat3.C", "Cat3.D", "Cat3.E", "Cat3.F",  "Cat4.A","Cat4.B","Cat4.C", "Cat5.A", "Cat5.B", "Cat5.C", "Cat6.B", "Cat6.C", "Cat6.D", "Cat6.E", "Cat6.F", "Cat7.A", "Cat7.B","Cat7.C", "Cat7.D", "Cat8.A", "Cat8.B", "Cat8.C", "Cat9.A", "Cat9.B", "Cat10.A", "Cat10.B","Cat10.C","Cat11.A", "Cat11.B", "Cat11.C", "Cat11.D", "Cat11.E", "Cat11.F", "Cat12.", "Cat12.A", "Cat12.B", "Cat12.C", "Cat12.D", "Cat12.E", "Cat12.F", "OrdCat.1", "OrdCat.2", "OrdCat.3", "OrdCat.4","OrdCat.5", "OrdCat.6", "OrdCat.7", "NVCat.A", "NVCat.B", "NVCat.C", "NVCat.D", "NVCat.E","NVCat.F", "NVCat.G", "NVCat.H", "NVCat.I","NVCat.J", "NVCat.K", "NVCat.L", "NVCat.M", "NVCat.N","NVCat.O","clasificacion","Claim_Amount")
 #dput(names(entrenamiento))
+
 entredf <- entrenamiento[,cols]
+write.csv(entredf,file="entredf.csv")
 prop.table(table(entredf$clasificacion))
 ```
-Regresion Lineal con dataframe sin corregir el desequilibrio en los datos:
+
+##Selección Variables sin corregir el desequilibrio en los datos, con CARET:
+##Eliminar Variables Redundantes
 ```{r}
+#Antes de evaluar la correlación, detectamos las variables con varianza 0.
+varcero <- nearZeroVar(entredf,saveMetrics=TRUE)
+str(varcero,vec.len=2)
+#Variables con varianza 0:
+varcero[varcero[,"zeroVar"]>0,]
+#variables con varianza cerca a cero
+varcero[varcero[,"zeroVar"]+varcero[,"nzv"]>0,]
+
+##Penalized likelihood solution for not to remove this features:
+
+library(dplyr)
+library(glmnet)
+
+
+y <- entredf[,"Claim_Amount"]
+y <- as.vector(y)
+x <- entredf
+x$clasificacion <- NULL
+x$Claim_Amount <- NULL
+DF <- as.matrix(as.data.frame(lapply(x,as.numeric)))
+output <- cv.glmnet(DF,y)
+c <- coef(output,s='lambda.min',exact=TRUE)
+inds <- which(c!=0)
+variables <- row.names(c)[inds]
+variables
+[1] "(Intercept)"   "Calendar_Year" "Model_Year"    "Var7"          "Var8"          "NVVar1"       
+ [7] "NVVar2"        "Cat1.B"        "Cat1.C"        "Cat1.E"        "Cat2.B"        "Cat3.B"       
+[13] "Cat3.D"        "Cat3.F"        "Cat5.B"        "Cat6.B"        "Cat6.C"        "Cat6.D"       
+[19] "Cat6.E"        "Cat6.F"        "Cat7.B"        "Cat7.C"        "Cat7.D"        "Cat9.A"       
+[25] "Cat10.C"       "Cat11.B"       "Cat11.E"       "Cat12.D"       "Cat12.E"       "Cat12.F"      
+[31] "OrdCat.3"      "OrdCat.4"      "NVCat.A"       "NVCat.E"       "NVCat.G"       "NVCat.H"      
+[37] "NVCat.I"       "NVCat.J"       "NVCat.L"       "NVCat.N"       "NVCat.O"      
+
+##randomForest- LVQ model BIGRF????
+library(dplyr)
+entredf_1 <- sample_n(entredf,100000)
+library(randomForest)
+entredf$Claim_Amount <- NULL
+rf <- randomForest(clasificacion~.,data=entredf_1,importance=TRUE,ntree=100)
+imp=importance(rf,type=1)
+imp <- data.frame(predictors=rownames(imp),imp)
+imp.sort <- arrange(imp,desc(X.IncMSE))
+imp.sort$predictors <- factor(imp.sort$predictors,levels=imp.sort$predictors)
+imp.3 <- imp.sort[1:30,]
+imp.3
+plot(rf,type=1)
 
 
 
+z <- apply(entredf, 2, function(x) length(unique(x)) == 1)
+dfr <- entredf[, !z]#entredf es nuestro dataset con los casos completos
+n=length(colnames(dfr))#86 variables
+
+#Calculamos la matriz de correlación
+correlationMatrix <- cor(dfr[,1:85],use="complete.obs")
+
+#Totalizamos la matriz de correlación
+print(correlationMatrix)
+
+#Encontramos las variables que estan muy correlacionadas (cutoff >0.7)
+highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=(0.7),verbose = FALSE)
+
+#Resultado variables altamente correlacionadas
+print(highlyCorrelated)
+
+#Variables importantes:
+
+important_var=colnames(entredf[,-highlyCorrelated])
+important_var
 ```
+##Clasificar Variables por importancia
 
+```{r}
+control <- trainControl(method="repeatedcv", number=10, repeats=3)
+# train the model
+model <- train(clasificacion~., data=entredf, method="lvq", preProcess="scale", trControl=control)
+# estimate variable importance
+importance <- varImp(model, scale=FALSE)
+# summarize importance
+print(importance)
+# plot importance
+plot(importance)
+```
 ##FICHERO TEST ANALISIS DE DATOS
 
 ANALIZAMOS LAS CATEGORICAS EN EL FICHERO TEST (no hay missing values)
@@ -440,9 +634,6 @@ train_aggr = aggr(siniestros, numbers=TRUE, sortVars=TRUE, labels=names(siniestr
 ```
 
 
-
-
-
 ESQUEMA A REALIZAR:
 
 Train >>> casos_completos >>> Sample_casos_completos >>> Eliminar ID >>> Partición Train/Test >>> Oversampling >>> "Data Frame compensado" >>> Eliminar Variables
@@ -592,29 +783,48 @@ summary(pruebasubmodel)
 
 ##Encontrar patrones de los Missing Values con "mice"
 
-Tenemos 8431 observaciones que tienen missing values en las variables "Blind_Make","Blind_Model" y "Blind_Submodel", para estas variables el número de niveles es muy elevado. Como máximo las variables pueden tener 50 categorías diferentes. Vamos a realizar 3 operaciones para conseguir implementar los missing values:
-Lo primero que vamos a hacer es separar train en dos data.frame vamos a quitar los 8451 observaciones el las que Submodel es NA porque al tener más de 2000 niveles nos da problemas a la hora de predecir el resto de las variables ya que Mice solo nos permite 50.
-```{r}
-train_1 <-  train[!is.na(train$Blind_Submodel),]
-train_2 <- train[is.na(train$Blind_Submodel),]
-dim(train_1)
-dim(train_2)
-```
+Tenemos 8431 observaciones que tienen missing values en las variables "Blind_Make","Blind_Model" y "Blind_Submodel", para estas variables el número de niveles es muy elevado. Como máximo las variables pueden tener 50 categorías diferentes.
+
 seleccionamos solo las columnas con Missing Values para encontrar patrones, todas las variables son categóricas (Factor).
 
 ```{r}
-train_Missing_Values <- train_1[,8:21]
-unique(is.na(train_Missing_Values$Blind_Submodel))#no hay ningún NA en el submodel
-train_Missing_Values_muestra <- train_Missing_Values[1:10000,]
+#Vamos a ignorar las 4 columnas que tienen un alto porcentaje de missing values, para poder imputar los missing values de las variables con menos del 5%.
+#("Cat2","Cat4","Cat5","Cat7") #Variables con más del 5% de Missing Values
+dput(names(train))
+cols <- c("Row_ID", "Household_ID", "Vehicle", "Calendar_Year", "Model_Year", "Blind_Make", "Blind_Model","Blind_Submodel", "Cat1","Cat2", "Cat3", "Cat4","Cat5","Cat6","Cat7" ,"Cat8", "Cat9", "Cat10", "Cat11", "Cat12", "OrdCat", "Var1", "Var2","Var3", "Var4", "Var5", "Var6", "Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3", "NVVar4", "Claim_Amount")
+train2 <- train[,cols]
+train2_complete <- train2[train2$Claim_Amount>0,]
+dput(names(train2_complete))
+train_ <- train2[,c("Calendar_Year", "Model_Year", "Cat1","Cat2", "Cat3", "Cat4","Cat5","Cat6","Cat7" ,"Cat8", "Cat9", "Cat10", "Cat11", "Cat12", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6", "Var7", "Var8", "Claim_Amount")]
+head(train_claim)
+
+patron_train <- md.pattern(train_claim)
+impclaim <- mice(data=train_, m=2,maxit = 3, method= "polyreg", seed = 1234,MaxNWts = 2000)
+#hacemos la imputación solo para los que tienen importe de reclamación
+```
+
+
+```{r}
+train_Missing_Values <- train[,cols]
+train_NA_Claim <- train_Missing_Values[train_Missing_Values$Claim_Amount>0,]
+train_Missing_Values_muestra <- train_Missing_Values[1:100000,]
 patron_muestra <- md.pattern(train_Missing_Values_muestra)
+patron_muestra
 ```
 
 ##Imputación de los Missing Value con MICE
 
-Con el data.frame que creamos con anterioridad ya podemos realizar la imputación de los missing Value con "mice":
 
 ```{r}
-imp <- mice(data=train_Missing_Values_muestra, m=2,method= "polyreg", seed = 1234,MaxNWts = 2000)
+imp <- mice(data=train_NA_Claim, m=5,method= "polyreg", seed = 1234,MaxNWts = 2000)
+summary(imp)
+imp$imp$Cat6
+imp$meth
+completeData <- complete(imp,1)
+library(lattice)
+xyplot(imp,Claim_Amount ~Cat1+Cat2,pch=18,cex=1)
+densityplot(tempData)
+stripplot(tempData, pch = 20, cex = 1.2)
 ```
 El paquete mice tarda en exceso, así que probamos otro de los paquetes de R "Amelia"
 
@@ -686,22 +896,6 @@ head(claim_poliza_class[order(-claim_poliza_class$Claim_Amount),])
 
 ```
 
-
-##Caso A:
-
-```{r}
-train[is.na(train$Blind_Make)] <- "?"
-train[is.na(train$Blind_Model)] <- "?"
-train[is.na(train$Blind_Submodel)] <- "?"
-
-cols <- c("Calendar_Year","Model_Year","Blind_Make","Blind_Model","Blind_Submodel","Cat1","Cat2","Cat3","Cat4","Cat5","Cat6","Cat7","Cat8","Cat9","Cat10","Cat11","Cat12","OrdCat","Var1","Var2","Var3","Var4","Var5","Var6","Var7","Var8","NVCat","NVVar1","NVVar2","NVVar3","NVVar","Claim_Amount")
-train_mice_A <- train[,4:35]
-muestra_A <- train_mice_A[1:100000,]
-imp <- mice(muestra_A, m=10,method= "polyreg", seed = 1234)
-
-
-```
-
 ##Eliminamos Vehículos Duplicados
 Para ello quitamos las variables Id (Row_ID,Vehicle,Calendar_Year). Dejamos Household_ID para tener algún identificador de la póliza (éste Id es igual para todos los vehiculos de esa casa)
 ```{r}
@@ -736,63 +930,16 @@ positiveclaim <- train[train$Claim_Amount>0,]
 dim(positiveclaim)
 ```
 
-Vamos a tomar una muestra del fichero "train" para trabajar los diferentes modelos y finalmente aplicarlo al fichero completo. Cogemos las 5.000.000 primeras filas.
+
+##KNN 
 
 ```{r}
-train_sample <- train[1:100000,]
-class(train_sample)
-train_sample <- as.data.frame(train_sample)
-str(train_sample)
-```
-
-
-```{r}
-library(plyr)
-train_sample[6:20] <- lapply(train_sample[6:20], as.factor) 
-train_sample$NVCat <- as.factor(train_sample$NVCat)
-train_sample$OrdCat <- as.integer(train_sample$OrdCat)
-train_sample$Model_Year <- as.factor(train_sample$Model_Year)
-train_sample$Calendar_Year <- as.factor(train_sample$Calendar_Year)
-```
-
-
-
-Cuando el fichero ya está limpio lo divido en dos partes:
-
-- 80000 observaciones "train"
-- 20000 observaciones "test"
-
-##KNN utilizando variables numéricas
-
-```{r}
-summary(train)
-names(train_sample)
-cols <- c("Cat8","Var1","Var2","Var3","Var4","Var5","Var6","Var7","Var8")
-claims <- c("classification")
-data_num <-train_sample[,cols]
-head(data_num)
-data_num_labels <- train$Claim_Amount[1:100000]
-data_num_labels <- ifelse(train$Claim_Amount==0,"0","1")
-data_num_labels <- as.factor(data_num_labels)
-train_set_labels <- data_num_labels[1:80000]
-test_set_labels <- data_num_labels[80001:100000]
-library(class)
-train_set <-data_num[1:80000,] 
-test_set <- data_num[80001:100000,]
-summary(train_set)
-normalize <- function(x){return ((x-min(x))/(max(x)-min(x)))}
-train_set_norm <- as.data.frame(lapply(train_set,normalize))
-test_set_norm <- as.data.frame(lapply(test_set,normalize))
-test_set[is.na(test_set$Cat8),] <- "A"
-train_set[is.na(train_set$Cat8),] <- "A"
-summary(test_set$Cat8)
-
 prediccion <- knn(train=train_set,test=test_set,cl=train_set_labels,k=15)
 ```
 
 #Clasificación K-vecinos (KNN)
 
-El algoritmo KNN requiere que todas las variables sean categóricas o continuas. Enel caso de tener de los dos tipos, las categóricas deben ser transformadas a numéricas antes de aplicar el algoritmo. En el caso de que las categóricas tengan más de dos categorías usaremos variables dummy.
+El algoritmo KNN requiere que todas las variables sean categóricas o continuas. Enel caso de tener de los dos tipos, las categóricas deben ser transformadas a numéricas antes de aplicar el algoritmo (dummies). En el caso de que las categóricas tengan más de dos categorías usaremos variables dummy.
 cor(train_sample)
 ```{r}
 library(caret)
@@ -827,50 +974,7 @@ pred <- knn(train=pruebaknn_train,test=pruebaknn_test,cl=train_levels,k=3,use.al
 header <- unlist(strsplit(colnames(dummies), '[.]'))[2 * (1:ncol(dummies))]
 Cat1 <- factor(dummies %*% 1:ncol(dummies), labels = header)
 ```
-str(train_sample)
-* Necesitamos normalizar los datos
-* El objetivo es clasificar los datos en "si" tienen daño corporal o "no" tiene daño corporal
 
-
-
-
-#problema de memoria
-library(pryr)
-
-```{r}
-memory.limit()
-object_size(train)
-memory.limit(size=16384)
-```
-##Substituimos el importe por 0 o 1 (no importe - si importe)
-prueba <- train[sample(nrow(train), 100000), ]
-sum(prueba$Claim_Amount)
-prueba$damage <- ifelse(prueba$Claim_Amount==0,"0","1")
-prueba$damage <- as.factor(prueba$damage)
-sum(prueba$Claim_Amount!=0)
-sum(prueba$Claim_Amount)
-
-###Número de casos con daño corporal.
-sum(train$Claim_Amount==0)
-sum(train$Claim_Amount!=0)
-sum(prueba$Claim_Amount!=0)
-
-#Vamos a trabajar inicialmente sobre una muestra de 2 millones de observaciones:
-````{r}
-train_sample <- train[sample(nrow(train), 2000000), ]
-train_sample <- as.data.frame(train_sample)
-dim(train_sample)
-str(train_sample)
-
-```
-
-
-#Comprobacion filas duplicadas
-```{r}
-anyDuplicated(train_sample)
-train_sample[duplicated(train_sample),]
-head(train_sample)
-```
 ##densidad
 
 ```{r}
@@ -895,8 +999,4 @@ densityplot(~Claim_Amount,data=train_sample,
 boxplot(train_sample$Claim_Amount,main="Importe Siniestros Daño Corporal",ylab="Importe")
 ```
 
-write.csv(train, file = "train_clean.csv")
-#Tratamiento?
-str(train)
-summary(train_sample$Blind_Make)
 
