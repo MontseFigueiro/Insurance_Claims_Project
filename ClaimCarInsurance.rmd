@@ -197,12 +197,31 @@ submodels <- data[,cols]
 
 library(mice)
 imp <- mice(data=submodels, m=5,maxit=20,method= "polyreg",MaxNWts = 2000)
-imp2 <- mice(data=submodels, m=5,maxit=5,method= "polyreg",MaxNWts = 2000)
-imp3 <- mice(data=submodels, m=3,maxit=50,method= "polyreg",MaxNWts = 2000)
-modelFit <- with(imp,lm(Claim_Amount~ Cat1+Cat2+Cat3+Cat4+ Cat5+ Cat6+Cat7+Cat8+Cat9))
+imp2 <- mice(data=submodels, m=5,maxit=10,method= "polyreg",MaxNWts = 2000)
+imp3 <- mice(data=submodels, m=10,maxit=10,method= "polyreg",MaxNWts = 2000)
+modelFit <- with(imp,glm(Claim_Amount~ Cat1+Cat2+Cat3+Cat4+ Cat5+ Cat6+Cat7+Cat8+Cat9))
 mi.reg.pool <- pool(modelFit)
+modelFit
+142300
 summary(mi.reg.pool)
 pool.r.squared(modelFit)
+
+modelFit2 <- with(imp2,glm(Claim_Amount~ Cat1+Cat2+Cat3+Cat4+ Cat5+ Cat6+Cat7+Cat8+Cat9))
+modelFit2
+142400
+mi.reg.pool2 <- pool(modelFit2)
+summary(mi.reg.pool2)
+pool.r.squared(modelFit2)
+
+modelFit3 <- with(imp3,glm(Claim_Amount~ Cat1+Cat2+Cat3+Cat4+ Cat5+ Cat6+Cat7+Cat8+Cat9))
+modelFit3
+mi.reg.pool3 <- pool(modelFit3)
+summary(mi.reg.pool3)
+pool.r.squared(modelFit3)
+
+
+coef <- modelFit$analyses
+
 
 #Completamos los NA con los datos de las 5 imputaciones (la dimensión de la tabla es 5x6832)
 datos <- complete(imp,action="long")
@@ -225,27 +244,112 @@ most_freq <- cbind(Cat1,Cat2$value,Cat3$value,Cat4$value,Cat5$value,Cat6$value,C
 colnames(most_freq) <- c(".id","Cat1m","Cat2m","Cat3m","Cat4m","Cat5m","Cat6m","Cat7m","Cat8m","Cat9m")
 
 datadf <- merge(data,most_freq,by=".id",all.x=TRUE) 
-
 #Toca pasarlo a "train" para eso vamos a crear un id que va a ser la unión de Blind_Submodel+Cat1+Cat2.....Cat9, en las dos tablas para poder hacer el merge con train.
-
+train[train=="?"] <- NA
 train$ID <- paste(train$Blind_Submodel,train$Cat1,train$Cat2,train$Cat3,train$Cat4,train$Cat5,train$Cat6,train$Cat7,train$Cat8,train$Cat9,sep="")
 datadf$ID <- paste(datadf$Blind_Submodel,datadf$Cat1,datadf$Cat2,datadf$Cat3,datadf$Cat4,datadf$Cat5,datadf$Cat6,datadf$Cat7,datadf$Cat8,datadf$Cat9,sep="")
 train$ID <- as.factor(train$ID)
 datadf$ID <- as.factor(datadf$ID)
 datadf <- datadf[,13:22]
+traindf <- train
 
-traindf1 <- train[1:7000000,]
-traindf2 <- train[7000001:13184290,]
+traindf <- merge(traindf,datadf,by="ID",all.x = TRUE)
 
-traindf1 <- merge(traindf1,datadf,by="ID",all.x = TRUE)
-traindf2 <- merge(traindf2,datadf,by="ID",all.x = TRUE)
+#Reemplazamos los NA con los valores que nos ha imputado MICE
+traindf$Cat1[is.na(traindf$Cat1)] <- traindf$Cat1m[is.na(traindf$Cat1)]
+traindf$Cat2[is.na(traindf$Cat2)] <- traindf$Cat2m[is.na(traindf$Cat2)]
+traindf$Cat3[is.na(traindf$Cat3)] <- traindf$Cat3m[is.na(traindf$Cat3)]
+traindf$Cat4[is.na(traindf$Cat4)] <- traindf$Cat4m[is.na(traindf$Cat4)]
+traindf$Cat5[is.na(traindf$Cat5)] <- traindf$Cat5m[is.na(traindf$Cat5)]
+traindf$Cat6[is.na(traindf$Cat6)] <- traindf$Cat6m[is.na(traindf$Cat6)]
+traindf$Cat7[is.na(traindf$Cat7)] <- traindf$Cat7m[is.na(traindf$Cat7)]
+traindf$Cat8[is.na(traindf$Cat8)] <- traindf$Cat8m[is.na(traindf$Cat8)]
+#Seleccionamos las columnas que necesitamos, dejando las columnas que hemos utilizado para la limpieza del archivo.
+traindf <- traindf[,2:36]
 
-na <- traindf[is.na(traindf$Cat1m),]
+#Sustitución de los Modelos con NA por "Desconocido", recordamos que al abrir el fichero con fread nos elimina el tipo de variable y tenemos que volver a pasar a factor:
+traindf$Blind_Make<- as.character(traindf$Blind_Make)
+traindf$Blind_Make[is.na(traindf$Blind_Make)] <- "Desconocido"
+traindf$Blind_Make<- factor(traindf$Blind_Make)
+
+traindf$Blind_Model<- as.character(traindf$Blind_Model)
+traindf$Blind_Model[is.na(traindf$Blind_Model)] <- "Desconocido"
+traindf$Blind_Model<- factor(traindf$Blind_Model)
+
+traindf$Blind_Submodel<- as.character(traindf$Blind_Submodel)
+traindf$Blind_Submodel[is.na(traindf$Blind_Submodel)] <- "Desconocido"
+traindf$Blind_Submodel<- factor(traindf$Blind_Submodel)
+#Grabamos el fichero para no volver a tener que ejecutar todos los pasos previos de limpieza.
+write.csv(traindf,"traindf.csv",row.names = FALSE)
+```
+CARGAMOS EL FICHERO TRAINDF YA LIMPIO PARA CONTINUAR A PARTIR DE AHÍ NUESTROS DIFERENTES ESTUDIOS:
+```{r}
+datos_train <- read.csv("traindf.csv")
+Tabla_NAs_traindf <- as.data.frame(sapply(datos_train, function(x) sum(is.na(x))))
+colnames(Tabla_NAs_traindf) <- c("NumNAs")
+Tabla_NAs_traindf$Porcentaje <- round((Tabla_NAs_traindf$NumNAs/nrow(datos_train))*100,2)
+TablaNas_Positive_traindf <- Tabla_NAs_traindf[Tabla_NAs_traindf$NumNAs>0,]
+TablaNas_Positive_traindf
+```
+SELECCIONAMOS LOS CASOS COMPLETOS, HEMOS PASADO DE :
+```{r}
+casos_completos <- datos_train[complete.cases(datos_train),]#13141377
+casos_completos$clasification <- as.factor(ifelse(casos_completos$Claim_Amount==0,"0","1"))
+casos_completos_Claim <- casos_completos[casos_completos$Claim_Amount>0,]#95324
+plot(casos_completos_Claim$Claim_Amount)
+hist(casos_completos_Claim$Claim_Amount)
+```
+SPLIT DATAFRAME, TRAIN, VALIDATION AND TEST:
+```{r}
+set.seed(1234)
+idx <- sample(seq(1, 3), size = nrow(casos_completos), replace = TRUE, prob = c(.6, .2, .2))
+train <- casos_completos[idx == 1,]
+test <- casos_completos[idx == 2,]
+val <- casos_completos[idx == 3,]
+prop.table(table(train$clasification))
+prop.table(table(test$clasification))
+prop.table(table(val$clasification))
+```
+GRABAMOS LOS FICHEROS TRAIN,TEST Y VALIDATION PARA SIEMPRE TOMAR LOS MISMOS REGISTROS:
+```{r}
+write.csv(train,"train_casos_completos.csv",row.names = FALSE)
+write.csv(test,"test_casos_completos.csv",row.names=FALSE)
+write.csv(val,"val_casos_completos.csv",row.names=FALSE)
+```
+ABRIMOS LOS FICHEROS:
+```{r}
+train <- read.csv("train_casos_completos.csv")
+val <- read.csv("val_casos_completos.csv")
+test <- read.csv("test_casos_completos.csv")
+cols <- c("Calendar_Year", "Model_Year", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "Cat10", "Cat11", "Cat12", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6", "Var7", "Var8", "NVCat", "NVVar1", "NVVar2","NVVar3", "NVVar4", "clasification")
+train <- train[,cols]
+test <- test[,cols]
+val <- val[,cols]
+```
+CLUSTER UNDER-SAMPLING FOR UNBALANCED DATA:
+
+```{r}
+train$clasification <- as.factor(train$clasification)
+table(train$clasification)
+
 ```
 
 
+MODELO SVM:
+```{R}
+library(e1071) 
+mod.svm <- svm(clasification ~ ., data = train, kernel = "radial")
+pred.test <- 
+mod.svm <- svm(clasification ~ ., data = train_SMOTE, kernel = "radial")
 
-si agrupamos house+submodel+model_year nos da cuantas polizas diferentes tenemos en el dataset "train", muchas observaciones no son independientes se trata del mismo vehículo asegurado en diferentes años, pero hay variables que no se mantienen constantes (como Cat10, Cat11, Cat12):
+
+```
+
+mod.random <- randomForest(class ~ ., data = billetes.train)
+mod.ctree <- ctree(class ~ ., data = billetes.train)
+mod.gbm <- gbm(class ~ ., data = dat.gbm, interaction.depth = 6, n.trees = 10000, cv.folds = 3)
+```
+siupamos house+submodel+model_year nos da cuantas polizas diferentes tenemos en el dataset "train", muchas observaciones no son independientes se trata del mismo vehículo asegurado en diferentes años, pero hay variables que no se mantienen constantes (como Cat10, Cat11, Cat12):
 
 ```{r}
 polizasdifcoches <-aggregate(Claim_Amount~Blind_Submodel+Model_Year+Household_ID,train,sum)#7.361.942 polizas pertenecen a coches diferentes, podría existir algún coche que un año estuviera asegurado en una casa y otro año en otra pero sería la excepción.
@@ -528,101 +632,7 @@ NAS$`rowSums(is.na(train))` <- as.factor(NAS$`rowSums(is.na(train))`)
 ```
 3706301 casos no tienen NA y 3114961 tienen 1 NA.
 
-##Sustitución NA categóricas
 
-Las categóricas Cat1,Cat4, Cat5, Cat7,Cat8, Cat9 podemos agruparlas por Submodel y así poder corregir algunos de los NA que tenemos sustituyéndolos por el valor más frecuente para ese submodelo:
-
-Queremos calcular la moda para Cat1, Cat4,Cat5,Cat7,Cat8,Cat9 para sustituir los NA:
-```{r}
-train2 <- train
-Cat1 <- train[,c("Blind_Submodel","Cat1")]
-Cat1 <- Cat1[complete.cases(Cat1),]
-Cat4 <- train[,c("Blind_Submodel","Cat4")]
-Cat4 <- Cat4[complete.cases(Cat4),]
-Cat5 <- train[,c("Blind_Submodel","Cat5")]
-Cat5 <- Cat5[complete.cases(Cat5),]
-Cat7 <- train[,c("Blind_Submodel","Cat7")]
-Cat7 <- Cat7[complete.cases(Cat7),]
-Cat8 <- train[,c("Blind_Submodel","Cat8")]
-Cat8 <- Cat8[complete.cases(Cat8),]
-
-library(dplyr)
-library(plyr)
-
-#CAT1
-a <- Cat1 %>% group_by(Blind_Submodel) %>% summarize (b =names(which.max(table(Cat1))))
-a <- as.data.frame(a)
-a$Blind_Submodel <- as.factor(a$Blind_Submodel)
-a$b <- as.factor(a$b)
-xy <- merge(x = train2, y = a, by = "Blind_Submodel", all.x = TRUE)
-xy$Cat1[is.na(xy$Cat1)] <- as.factor(xy$b[is.na(xy$Cat1)])
-
-#CAT4
-b <- Cat4 %>% group_by(Blind_Submodel) %>% summarize (b =names(which.max(table(Cat4))))
-b <- as.data.frame(b)
-b$Blind_Submodel <- as.factor(b$Blind_Submodel)
-b$b <- as.factor(b$b)
-xy <- merge(x = xy, y = b, by = "Blind_Submodel", all.x = TRUE)
-xy$Cat4[is.na(xy$Cat4)] <- as.factor(xy$b.y[is.na(xy$Cat4)])
-
-#CAT5
-d <- Cat5 %>% group_by(Blind_Submodel) %>% summarize (d =names(which.max(table(Cat5))))
-d <- as.data.frame(d)
-d$Blind_Submodel <- as.factor(d$Blind_Submodel)
-d$d <- as.factor(d$d)
-xy <- merge(x = xy, y = d, by = "Blind_Submodel", all.x = TRUE)
-xy$Cat5[is.na(xy$Cat5)] <- as.factor(xy$d[is.na(xy$Cat5)])
-summary(xy$Cat5)
-summary(train$Cat5)
-
-#CAT7
-
-c <- Cat7 %>% group_by(Blind_Submodel) %>% summarize (b =names(which.max(table(Cat7))))
-c <- as.data.frame(c)
-c$Blind_Submodel <- as.factor(c$Blind_Submodel)
-c$b <- as.factor(c$b)
-xy <- merge(x = xy, y = c, by = "Blind_Submodel", all.x = TRUE)
-xy$Cat7[is.na(xy$Cat7)] <- as.factor(xy$b[is.na(xy$Cat7)])
-summary(xy$Cat7)
-summary(train$Cat7)
-
-#CAT8
-f <- Cat8 %>% group_by(Blind_Submodel) %>% summarize (f =names(which.max(table(Cat8))))
-f <- as.data.frame(f)
-f$Blind_Submodel <- as.factor(f$Blind_Submodel)
-f$f <- as.factor(f$f)
-xy <- merge(x = xy, y = f, by = "Blind_Submodel", all.x = TRUE)
-xy$Cat8[is.na(xy$Cat8)] <- as.factor(xy$f[is.na(xy$Cat8)])
-summary(xy$Cat8)
-summary(train$Cat8)
-```
-Elimino en xy las columnas que no necesito:
-```{r}
-xy$g <- NULL
-xy$f <- NULL
-xy$d <- NULL
-xy$b <- NULL
-xy$b.y <- NULL
-```
-Nuestro nuevo fichero de datos hemos conseguido limpiar más de 100000 observaciones.
-```{r}
-Data <- xy
-sum(complete.cases(train))
-sum(complete.cases(Data)) # Count of complete cases in a data frame named 'data'
-sum(!complete.cases(Data)) # Count of incomplete cases
-
-```
-
-Hemos limpiado casi 1000 observaciones con daño corporal que se han quedado sin ningún NA:
-```{r}
-
-completeclaim <- xy[xy$Claim_Amount>0,]
-dim(completeclaim)
-comp <- completeclaim[complete.cases(completeclaim),]
-dim(comp)
-comp <- casos_completos[casos_completos$Claim_Amount>0,]
-dim(comp)
-```
 VISUALIZACIÓN CON VIM DE SOLO LOS MISSING VALUES CASOS CON IMPORTE:
 ```{r}
 library(VIM)
