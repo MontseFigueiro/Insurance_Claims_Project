@@ -153,12 +153,13 @@ table(pred_bayes1,bayes1_class)
 ```
 
 Tabla de Clasificación:
-```{r}
+
+
 |    |no | si|
-  |----|---|----|
-  |no|6242858|71218|
-  |si|621|2|
-```
+|----|---|----|
+|no|6242858|71218|
+|si|621|2|
+
 *Nos ha clasificado 2 de clase=1 correctamente y 621 incorrecamente*
 *Obtenemos un Accuracy elevado porque se trata de un dataset con una clase mayoritaria = 0 de más del 95% de los datos*
 
@@ -199,12 +200,12 @@ table(pred_bayestest,testresult)
 ```
 
 Tabla de Clasificación:
-```{r}
+
 |    |no | si|
-  |----|---|----|
-  |no|1699374|18294|
-  |si|380007|5496|
-```
+|----|---|----|
+|no|1699374|18294|
+|si|380007|5496|
+
 
 Accuracy del 81%
 ```{r}
@@ -239,10 +240,10 @@ table(pred_bayes_aggr,class_aggr)
 ```
 Tabla de Clasificación:
 
-  |    |no | si  |
-  |----|---|-----|
-  |no|6243472|71220|
-  |si|7|0|
+|    |no | si  |
+|----|---|-----|
+|no|6243472|71220|
+|si|7|0|
 
 
 Aplicamos el Modelo de Naive Bayes al fichero Test:
@@ -255,10 +256,10 @@ table(pred_bayestest2,testresult)
 ```
 Tabla de Clasificación:
 
-  |    |no | si |
-  |----|---|----|
-  |no|2079379|23790|
-  |si|2|0|
+|    |no | si |
+|----|---|----|
+|no|2079379|23790|
+|si|2|0|
 
 
 ##UNDER-SAMPLING FOR UNBALANCED DATA
@@ -290,10 +291,10 @@ table(pred_bayes_balanced,class_balanced)
 ```
 Tabla de Clasificación:
 
-  |    |no | si  |
-  |----|---|-----|
-  |no|39215|32298|
-  |si|32005|38922|
+|    |no | si  |
+|----|---|-----|
+|no|39215|32298|
+|si|32005|38922|
 
 
 Aplicamos el Modelo de Naive Bayes al fichero Test:
@@ -307,10 +308,11 @@ table(pred_bayestest_balanced,testresult)
 
 Tabla de Clasificación:
 
-  |  |no     | si    |
-  |--|-------|-------|
-  |no|1200050|11562  |
-  |si|879331 |12228  |
+
+|  |no     | si    |
+|--|-------|-------|
+|no|1200050|11562  |
+|si|879331 |12228  |
   
 
 ###Calibración de probabilidades
