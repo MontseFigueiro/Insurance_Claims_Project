@@ -1,0 +1,259 @@
+---
+title: "Data Cleaning"
+author: "Montse Figueiro & Aniana González"
+date: "13 de octubre de 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##REDUCCIÓN DATASET CON SELECCIÓN DE VARIABLES
+
+###Carga Fichero
+
+```{r}
+library(data.table)
+train_completo <- fread("train_set.csv")
+```
+
+###Cambiamos variables del fichero train
+```{r}
+library(plyr)
+memory.limit(60000)
+train_completo <- as.data.frame(train_completo)
+train_completo[6:20] <- lapply(train_completo[6:20], as.factor) 
+train_completo$NVCat <- as.factor(train_completo$NVCat)
+train_completo$OrdCat <- as.factor(train_completo$OrdCat)
+```
+
+##SELECCIÓN DE VARIABLES
+
+###RELACIÓN ENTRE VARIABLES CATEGÓRICAS Y OUTPUT BINOMIAL (target)
+
+####Extracción Datos Completos
+
+Vamos a utilizar las observaciones que no tienen Missing Values para seleccionar las variables categóricas que tienen relación con el output. 
+
+Las variables númericas no tienen Missing Values y no necesitamos seleccionarlas en éste momento para reducir el dataset y realizar la limpieza de datos, cuando apliquemos los diferentes modelos de clasificación y regresión procederemos a eliminar las que correspondan.
+
+```{r}
+train2 <- train_completo
+train2[train2=="?"] <- NA
+casos_completos <- train2[complete.cases(train2),]#13141377
+casos_completos$clasification <- as.factor(ifelse(casos_completos$Claim_Amount==0,"0","1"))
+dim(casos_completos)
+```
+
+####Variables para las que rechazamos la hipótesis nula:
+```{r}
+chisq.test(casos_completos$Cat1,casos_completos$clasification)
+chisq.test(casos_completos$Cat2,casos_completos$clasification)
+chisq.test(casos_completos$Cat3,casos_completos$clasification)
+chisq.test(casos_completos$Cat4,casos_completos$clasification)
+chisq.test(casos_completos$Cat5,casos_completos$clasification)
+chisq.test(casos_completos$Cat6,casos_completos$clasification)
+chisq.test(casos_completos$Cat7,casos_completos$clasification)
+chisq.test(casos_completos$Cat8,casos_completos$clasification)
+chisq.test(casos_completos$Cat9,casos_completos$clasification)
+chisq.test(casos_completos$OrdCat,casos_completos$clasification)
+chisq.test(casos_completos$NVCat,casos_completos$clasification)
+```
+*Rechazamos la hipotesis nula de independencia p-value< 0.05*
+
+
+####Variables que pueden ser independientes - No rechazamos la hipótesis nula:
+```{r}
+chisq.test(casos_completos$Cat10,casos_completos$clasification)
+chisq.test(casos_completos$Cat11,casos_completos$clasification)
+chisq.test(casos_completos$Cat12,casos_completos$clasification)
+```
+*No rechazamos la hipotesis Nula de independencia p-value>0.05*
+
+###DIVIDIR SUBSET EN TRAIN Y TEST
+
+```{r}
+idx <- sample(seq(1, 2), size = nrow(train_completo), replace = TRUE, prob = c(.75, .25))
+train <- train_completo[idx == 1,]
+test <- train_completo[idx == 2,]
+```
+
+###FICHERO TRAIN REDUCIDO
+
+```{r}
+cols <- c("Row_ID", "Household_ID", "Vehicle", "Calendar_Year", "Model_Year", "Blind_Make", "Blind_Model","Blind_Submodel", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6", "Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3","NVVar4", "Claim_Amount")
+train <- train[,cols]
+```
+
+Eliminamos las observaciones repetidas, el mismo coche puede estar asegurado en distintos años, lo dejamos como una observación única:
+```{r}
+prueba <- train
+prueba$clasification <- as.factor(ifelse(prueba$Claim_Amount==0,"0","1"))
+train_household <- aggregate(Claim_Amount~Household_ID+Blind_Submodel+Model_Year+Cat1+Cat2+Cat3+Cat4+Cat5+Cat6+Cat7+Cat8+Cat9+OrdCat+Var1+Var2+Var3+Var4+Var5+Var6+Var7+Var8+NVCat+NVVar1+NVVar2+NVVar3+NVVar4+clasification,prueba,sum)
+```
+Vamos a agregar Claim_Amount, calculando el Total, la media y el número de observaciones con importe por daño corporal y sin importe, para cada observación, para ello no vamos a tener en cuenta el año de la póliza, ya que existen vehículos repetidos
+```{r}
+train_reducido <- aggregate(Claim_Amount~Blind_Submodel+Model_Year+Cat1+Cat2+Cat3+Cat4+Cat5+Cat6+Cat7+Cat8+Cat9+OrdCat+Var1+Var2+Var3+Var4+Var5+Var6+Var7+Var8+NVCat+NVVar1+NVVar2+NVVar3+NVVar4+clasification,train_household,FUN = function(x) c(TotalAmount = sum(x), freqAmount = length(x), MediaAmount=mean(x) ))
+train_reducido$TotalAmount <- train_reducido$Claim_Amount[,1]
+train_reducido$FreqAmount <- train_reducido$Claim_Amount[,2]
+train_reducido$MediaAmount <- train_reducido$Claim_Amount[,3]
+train_reducido$Claim_Amount <- NULL
+head(train_reducido[order(-train_reducido$TotalAmount),])
+```
+
+##TRATAMIENTO MISSING VALUES
+
+###IMPUTACIÓN
+
+Para las variables Cat1, Cat2, Cat3, Cat4, Cat5, Cat6, Cat7, Cat8, Cat9 se da la circunstancia de que no varían para el mismo Blind_Submodel, son iguales independientemente de la póliza, del asegurado y de la household_ID, con lo que summarizamos esta información para reducir el caso de Missing Values que tenemos en el dataset:
+
+
+###Extracción Subset Variables Categóricas con Missing Values por Submodel + Model_Year
+
+La mayor parte de de los Missing Values se encuentran en las Variables Categóricas que van de Cat1 a Cat9. Solamente la categórica Cat3 varía al tratarse del mismo Blind_Submodel y el mismo Model_Year. Ejemplo: Audi A5 del año 2001 siempre tendrá los mismos valores para las categóricas Cat1,Cat2,Cat4,Cat5,Cat6,Cat7,Cat8,Cat9 independientemente del propietario.
+
+Ejemplo Modelo "Y.2.1":
+```{r}
+Modelo_Y21 <- train_completo[train_completo$Blind_Submodel=="Y.2.1"&train_completo$Model_Year==2005,c( "Model_Year", "Blind_Submodel", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9")]
+head(Modelo_Y21,20)
+```
+
+*El fichero train que se utiliza tiene los ? y no han sido sustituidos por NA porque sino aggregate los ignora.*
+```{r}
+submodel1 <- aggregate(Claim_Amount~Blind_Make+Blind_Submodel+Model_Year+Cat1+Cat2+Cat3+Cat4+ Cat5+ Cat6+Cat7+Cat8+Cat9+OrdCat,train_completo,length)
+submodel1 <- submodel1[order(submodel1$Blind_Submodel,submodel1$Model_Year),]
+submodel1 <- submodel1[submodel1$Blind_Make!="?",]
+submodel1[submodel1=="?"] <- NA
+cols <- c("Blind_Make","Model_Year","Cat1","Cat2","Cat3","Cat4", "Cat5", "Cat6", "Cat7", "Cat8","Cat9","OrdCat")
+submodel <- submodel1[,cols]
+dim(submodel)
+head(submodel1[order(-submodel1$Claim_Amount),],5)
+```
+*Hemos obtenido 21526 modelos de vehículos con años y combinación de categóricas diferentes. Tenemos 41362 observaciones del primer modelo "AU.14.1" de 2005 con las mismas características*
+
+
+###Imputación Missing Values - MICE
+
+Solo el fichero *"Train_set.csv"* tiene Missing Values, el fichero *"Test_set.csv"* correspondiente a 2008-2009 no los tiene, esas observaciones han sido eliminadas (ninguno de los modelos de coche con Missing values en el fichero Train existen en el fichero Test). Hemos comprobado los niveles de las categóricas en el fichero test para descartar que los NA fueran una categoría propia pero como todos los modelos han sido eliminados para los años 2008 y 2009 no lo podemos determinar con total seguridad.
+
+En nuestro estudio vamos a suponer que los valores NA son una de las categorías existentes así que vamos a imputar las mismas para seleccionar el valor más frecuente.
+
+MICE no acepta más de 50 niveles en las categóricas, con lo que tenemos que quitar del dataset Blind_Submodel para poder imputar los Missing Values:
+
+```{r}
+library(mice)
+imp <- mice(data=submodel, m=5,maxit=10,method= "polyreg",MaxNWts = 2000)
+```
+*mice nos va a generar 5 dataset con diferentes valores para los NA's, iterando 10 veces*
+
+Completamos los NA con los datos de las 5 imputaciones (action="long" nos genera una tabla de dimensión 5x6832)
+```{r}
+datos <- complete(imp,action="long")
+head(datos)
+```
+
+Mice nos genera un .id que se corresponde con el rowname, añadimos éste mismo .id a nuestra tabla "submodel1"
+```{r}
+submodel1$.id <- rownames(submodel1)
+```
+
+De los 5 valores que nos genera mice vamos a seleccionar la categoría más frecuente para cada id.
+```{r}
+Cat1 <- melt(as.table(with(datos,by(Cat1,.id,function(xx)names(which.max(table(xx)))))))
+Cat2 <- melt(as.table(with(datos,by(Cat2,.id,function(xx)names(which.max(table(xx)))))))
+Cat3 <- melt(as.table(with(datos,by(Cat3,.id,function(xx)names(which.max(table(xx)))))))
+Cat4 <- melt(as.table(with(datos,by(Cat4,.id,function(xx)names(which.max(table(xx)))))))
+Cat5 <- melt(as.table(with(datos,by(Cat5,.id,function(xx)names(which.max(table(xx)))))))
+Cat6 <- melt(as.table(with(datos,by(Cat6,.id,function(xx)names(which.max(table(xx)))))))
+Cat7 <- melt(as.table(with(datos,by(Cat7,.id,function(xx)names(which.max(table(xx)))))))
+Cat8 <- melt(as.table(with(datos,by(Cat8,.id,function(xx)names(which.max(table(xx)))))))
+Cat9 <- melt(as.table(with(datos,by(Cat9,.id,function(xx)names(which.max(table(xx)))))))
+OrdCat <- melt(as.table(with(datos,by(OrdCat,.id,function(xx)names(which.max(table(xx)))))))
+
+most_freq <- cbind(Cat1,Cat2$value,Cat3$value,Cat4$value,Cat5$value,Cat6$value,Cat7$value,Cat8$value,Cat9$value,OrdCat$value)
+colnames(most_freq) <- c(".id","Cat1m","Cat2m","Cat3m","Cat4m","Cat5m","Cat6m","Cat7m","Cat8m","Cat9m","OrdCatm")
+datadf <- merge(submodel1,most_freq,by=".id",all.x=TRUE) 
+write.csv(datadf,"datos_Mice.csv",row.names=FALSE)
+```
+
+
+
+
+Pasamos los valores imputados a "train" para eso vamos a crear un id que va a ser la unión de Blind_Submodel+Cat1+Cat2.....Cat9, en las dos tablas para poder hacer el merge con train.
+```{r}
+train_reducido[train_reducido=="?"] <- NA
+train_reducido$ID <- paste(train_reducido$Blind_Submodel,train_reducido$Model_Year,train_reducido$Cat1,train_reducido$Cat2,train_reducido$Cat3,train_reducido$Cat4,train_reducido$Cat5,train_reducido$Cat6,train_reducido$Cat7,train_reducido$Cat8,train_reducido$Cat9,train_reducido$OrdCat,sep="")
+datadf$ID <- paste(datadf$Blind_Submodel,datadf$Model_Year,datadf$Cat1,datadf$Cat2,datadf$Cat3,datadf$Cat4,datadf$Cat5,datadf$Cat6,datadf$Cat7,datadf$Cat8,datadf$Cat9,datadf$OrdCat, sep="")
+train_reducido$ID <- as.factor(train_reducido$ID)
+datadf$ID <- as.factor(datadf$ID)
+datadf <- datadf[,16:26]
+```
+Limpieza train:
+```{r}
+traindf<- merge(train_reducido,datadf,by="ID",all.x = TRUE)
+
+#Reemplazamos los NA con los valores que nos ha imputado MICE
+traindf$Cat1[is.na(traindf$Cat1)] <- traindf$Cat1m[is.na(traindf$Cat1)]
+traindf$Cat2[is.na(traindf$Cat2)] <- traindf$Cat2m[is.na(traindf$Cat2)]
+traindf$Cat3[is.na(traindf$Cat3)] <- traindf$Cat3m[is.na(traindf$Cat3)]
+traindf$Cat4[is.na(traindf$Cat4)] <- traindf$Cat4m[is.na(traindf$Cat4)]
+traindf$Cat5[is.na(traindf$Cat5)] <- traindf$Cat5m[is.na(traindf$Cat5)]
+traindf$Cat6[is.na(traindf$Cat6)] <- traindf$Cat6m[is.na(traindf$Cat6)]
+traindf$Cat7[is.na(traindf$Cat7)] <- traindf$Cat7m[is.na(traindf$Cat7)]
+traindf$Cat8[is.na(traindf$Cat8)] <- traindf$Cat8m[is.na(traindf$Cat8)]
+traindf$OrdCat[is.na(traindf$OrdCat)] <- traindf$OrdCatm[is.na(traindf$OrdCat)]
+
+#Seleccionamos las columnas que necesitamos, dejando las columnas que hemos utilizado para la limpieza del archivo.
+traindf <- traindf[,2:30]
+
+#Sustitución de los Modelos con NA por "Desconocido", recordamos que al abrir el fichero con fread nos elimina el tipo de variable y tenemos que volver a pasar a factor:
+traindf$Blind_Submodel<- as.character(traindf$Blind_Submodel)
+traindf$Blind_Submodel[is.na(traindf$Blind_Submodel)] <- "Desconocido"
+traindf$Blind_Submodel<- factor(traindf$Blind_Submodel)
+head(traindf[order(-traindf$TotalAmount),])
+head(traindf[order(-traindf$FreqAmount),])
+head(traindf[order(-traindf$MediaAmount),])
+prop.table(table(traindf$clasification))
+```
+
+Grabamos el fichero para no volver a tener que ejecutar todos los pasos previos de limpieza.
+```{r}
+write.csv(traindf,"traindf.csv",row.names = FALSE)
+```
+
+Limpieza Test:
+```{r}
+test[test=="?"] <- NA
+test$ID <- paste(test$Blind_Submodel,test$Model_Year,test$Cat1,test$Cat2,test$Cat3,test$Cat4,test$Cat5,test$Cat6,test$Cat7,test$Cat8,test$Cat9,test$OrdCat,sep="")
+testdf<- merge(test,datadf,by="ID",all.x = TRUE)
+
+#Reemplazamos los NA con los valores que nos ha imputado MICE
+testdf$Cat1[is.na(testdf$Cat1)] <- testdf$Cat1m[is.na(testdf$Cat1)]
+testdf$Cat2[is.na(testdf$Cat2)] <- testdf$Cat2m[is.na(testdf$Cat2)]
+testdf$Cat3[is.na(testdf$Cat3)] <- testdf$Cat3m[is.na(testdf$Cat3)]
+testdf$Cat4[is.na(testdf$Cat4)] <- testdf$Cat4m[is.na(testdf$Cat4)]
+testdf$Cat5[is.na(testdf$Cat5)] <- testdf$Cat5m[is.na(testdf$Cat5)]
+testdf$Cat6[is.na(testdf$Cat6)] <- testdf$Cat6m[is.na(testdf$Cat6)]
+testdf$Cat7[is.na(testdf$Cat7)] <- testdf$Cat7m[is.na(testdf$Cat7)]
+testdf$Cat8[is.na(testdf$Cat8)] <- testdf$Cat8m[is.na(testdf$Cat8)]
+testdf$OrdCat[is.na(testdf$OrdCat)] <- testdf$OrdCatm[is.na(testdf$OrdCat)]
+
+#Seleccionamos las columnas que necesitamos, dejando las columnas que hemos utilizado para la limpieza del archivo.
+testdf <- testdf[,2:36]
+
+#Sustitución de los Modelos con NA por "Desconocido", recordamos que al abrir el fichero con fread nos elimina el tipo de variable y tenemos que volver a pasar a factor:
+testdf$Blind_Submodel<- as.character(testdf$Blind_Submodel)
+testdf$Blind_Submodel[is.na(testdf$Blind_Submodel)] <- "Desconocido"
+testdf$Blind_Submodel<- factor(testdf$Blind_Submodel)
+head(testdf[order(-testdf$TotalAmount),])
+head(testdf[order(-testdf$FreqAmount),])
+head(testdf[order(-testdf$MediaAmount),])
+```
+
+
+Grabamos el fichero para no volver a tener que ejecutar todos los pasos previos de limpieza.
+```{r}
+write.csv(testdf,"testdf.csv",row.names = FALSE)
+```
+

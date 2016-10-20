@@ -1,0 +1,251 @@
+---
+title: "Reading Data"
+author: "Montse Figueiro & Aniana González"
+date: "13 de octubre de 2016"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Allstate Claim Prediction Challenge
+
+###Fuente de Datos
+
+[claim_prediction_Challenge](https://www.kaggle.com/c/ClaimPredictionChallenge)
+
+###Información aportada por la empresa aseguradora
+
+El fichero contiene los siguientes campos:
+
+* Cada observación contiene la información anual sobre el seguro de un vehículo.  
+* La variable "Claim_Amount" ha sido ajustada para tener en cuenta los efectos de las características no correspondientes al vehículo, pero pueden tener interacciones interesantes con las variables del vehículo.
+* "Calendar_Year" es el año en el que el vehículo fué asegurado.
+* "Household_ID" es la identificación del hogar, en un hogar puede haber más de un vehículo asegurado.
+* "Vehicle" es el número que identifica al vehículo, pero el mismo vehículo no tiene porque tener el mismo número en los diferentes años.
+* Tenemos para identifiar el vehículo Model_Year, Blind_Make (manufacturer), Blind_Model, Blind_Submodel.
+* El resto de columnas contienen características del vehículo así como otras características asociadas a la poliza.
+* Las variables numéricas han sido normalizadas, tienen media 0 y desviación standar 1.
+* Tenemos dos datasets:
+    + Training de 2005-2007 para construir el modelo.
+    + Test de 2008-2009 sobre el que se tendrían que realizar las predicciones.(no lo vamos a utilizar)
+    
+
+###Objetivo del Estudio
+
+####Primer Objetivo: Clasificación
+
+Clasificar que vehículos tendrán siniestro con daño corporal en función de sus características.
+
++ 
++ 
++
+
+####Segundo Objetivo:Regressión
+
+Es conseguir predecir en función de las características del vehículo los pagos por daño corporal ocasionados anualmente por cada vehículo.
+
++ Random Forest Regresión.
+    + Previsión Datos numéricos - Métodos de Regresión
+        + GLM
+        + LM (PCA)
+        + SVM
+        + GBM
+    + Neutral Networks
+
+
+**En nuestro estudio solo vamos a utilizar el fichero Training (Desglosado en dos Train/Test) puesto que solo la empresa aseguradora conoce los datos reales para los años 2008-2009 y por lo tanto no podemos hacer la validación con el fichero Test.**
+
+
+##Code Book Variables
+
+[Dictionary](https://kaggle2.blob.core.windows.net/competitions-data/kaggle/2509/dictionary.html?sv=2012-02-12&se=2016-10-17T11%3A07%3A44Z&sr=b&sp=r&sig=79Ol5BgaJmVIRi1RdPLmz5R0DvRiBv2OVYAB8vbU8Co%3D)
+
+
+##Lectura de Datos
+```{r}
+library(data.table)
+train <- fread("train_set.csv")
+str(train)
+summary(train)
+```
+
+###problema de memoria
+
+```{r}
+memory.limit()
+memory.limit(size=60000)
+```
+
+###Cambiamos los tipos de variables:
+
+```{r}
+class(train)
+```
+
+Pasamos train a Data Frame, debido a que al leer el fichero con la función "fread" éste tiene dos clases. 
+```{r}
+train <- as.data.frame(train)
+```
+
+Las categóricas pasan a Factor:
+```{r}
+library(plyr)
+train[6:20] <- lapply(train[6:20], as.factor) 
+train$NVCat <- as.factor(train$NVCat)
+train$OrdCat <- as.factor(train$OrdCat)
+```
+
+##Visualización Datos Generales
+
+Comprobación observaciones duplicadas:
+```{r}
+anyDuplicated(train)
+```
+
+Vemos que salen 0 duplicados aunque tenemos el mismo vehículo asegurado en diferentes años, esto es porque hay tres variables categóricas que cambian cada año aunque se trate del mismo coche (Cat10,Cat11 y Cat12)
+
+
+Número de observaciones sin daño y con daño corporal:
+```{r}
+sum(train$Claim_Amount==0)
+sum(train$Claim_Amount!=0)
+prop_siniestro <- c((sum(train$Claim_Amount==0)/nrow(train)),(sum(train$Claim_Amount!=0)/nrow(train)))
+prop_siniestro
+```
+*El 99,27% de las observaciones no han sufrido daño corporal.*
+
+| |Num.Observaciones|Porcentaje|
+|--|------|-----|
+|Claim_Amount=0|13088685|0.99274|
+|Claim_Amount!=0|0.00725|
+
+
+Número de observaciones desglosadas por año y siniestralidad:
+```{r}
+Obs_polizas <- with(train, aggregate(Claim_Amount ~ Calendar_Year, FUN =  function(x) c( Total_Obs = length(x) )))
+Claim_positive <- train[train$Claim_Amount!=0,]
+Obs_polizas_Claim <- with(Claim_positive, aggregate(Claim_Amount ~ Calendar_Year, FUN =  function(x) c( Total_Obs_Claim = length(x) )))
+d <- (cbind(Obs_polizas,Obs_polizas_Claim$Claim_Amount))
+colnames(d) <- c("Calendar_Year","Obs.Totales","Obs.Claim")
+d$Porcentaje_Claim <- round((d$Obs.Claim/d$Obs.Totales)*100,2)
+```
+
+**Desglose Observaciones con Daños Corporal por año**
+
+|Año |Num. Observaciones|Observaciones con Claim|Porcentaje Obs.Claim|
+|---|------|-----|---|
+|2005|4025672|30148|0.007488|
+|2006|4447730|31690|0.007124|
+|2007|4710888|33767|0.007167|
+
+Número de Casas aseguradas: 
+```{r}
+House_policies <- as.data.frame(unique(train$Household_ID))
+dim(House_policies)
+```
+*4.309.042 Casas diferentes con 1 o más vehículos por Casa*
+
+Número de Vehículos asegurados:
+```{r}
+Cars_policies <- aggregate(Claim_Amount~Household_ID+Blind_Submodel+Model_Year,train,FUN = length)
+Cars_policies <- Cars_policies[order(-Cars_policies$Claim_Amount),]
+dim(Cars_policies)
+```
+*El mismo vehículo puede estar asegurado en 2005, 2006 y 2007, tenemos 7.366.649 de vehículos diferente.*
+
+Número de Modelos existentes:
+```{r}
+Cars_Models <- aggregate(Claim_Amount~Blind_Submodel+Model_Year,train,sum)
+dim(Cars_Models)
+```
+*Tenemos 13315 modelos de vehículos diferentes, pero el mismo vehículo puede tener características diferentes según la casa, ya que puede variar el color, la potencia....*
+
+
+##Visualización de Missing Values
+
+Tratamos a los ? como NA:
+```{r}
+train[train=="?"] <- NA
+```
+
+Contamos los casos completos (no tienen ningún NA) y los casos incompletos (tienen algún NA)
+```{r}
+sum(complete.cases(train))
+sum(!complete.cases(train))
+```
+*Tenemos 9.457.989 observaciones con algún NA y 3.726.301 de casos completos.*
+
+Carga de paquete:
+```{r}
+library(VIM)
+```
+
+Tabla resumen Missing Values por Variable:
+```{r}
+Tabla_NAs <- as.data.frame(sapply(train, function(x) sum(is.na(x))))
+colnames(Tabla_NAs) <- c("NumNAs")
+Tabla_NAs$Porcentaje <- round((Tabla_NAs$NumNAs/nrow(train))*100,2)
+TablaNas_Positive <- Tabla_NAs[Tabla_NAs$NumNAs>0,]
+```
+
+Barplot de los Missing Values:
+```{r}
+TablaNas_Positive= TablaNas_Positive[with(TablaNas_Positive, order(-NumNAs)), ]
+barplot(TablaNas_Positive$NumNAs, col="grey50", main="Frecuencia Missing Values por Variable",ylab="Frecuencia", xlab = "variable",space=1)
+end_point = 0.5 + nrow(TablaNas_Positive) + nrow(TablaNas_Positive)-1 
+text(seq(1.5,end_point,by=2), par("usr")[3]-0.25, srt = 60, adj= 1, xpd = TRUE,labels = paste(rownames(TablaNas_Positive)), cex=0.70)
+```
+
+Tenemos en total 23.438.318 de Missing Values, en el campo Porcentaje se indica el tanto por ciento de NA's sobre el total de observaciones de esa variable.
+
+
+|Variable|Número de NA|Porcentaje|
+|--------|------------|----------|
+|Blind_Make|        8431  |     0.06|
+|Blind_Model|       8431  |     0.06|
+|Blind_Submodel|    8431  |     0.06|
+|Cat1           |  25981  |     0.20|
+|Cat2   |        4874164  |    36.97|
+|Cat3    |          3999  |     0.03|
+|Cat4     |      5631649  |    42.71|
+|Cat5      |     5637321  |    42.76|
+|Cat6     |        25981  |     0.20|
+|Cat7     |      7167634  |    54.36|
+|Cat8      |        3364  |     0.03|
+|Cat10      |       3917  |     0.03|
+|Cat11       |     31469  |     0.24|
+|OrdCat       |     7546  |     0.06|
+
+Como hemos comprobado en nuestra tabla "TablaNAs_Positive" solamente las variables categóricas tienen Missing Values.
+
+
+Visualización con VIM de las variables con NA:
+
+Seleccionamos las columnas de train que solo tienen NA's:
+```{r}
+cols <- rownames(TablaNas_Positive)
+cols_with_NA <- train[,cols]
+```
+Visualización con VIM de Na's
+```{r}
+jpeg("Missing_Pattern.jpeg")
+train_aggr = aggr(cols_with_NA, numbers=TRUE, sortVars=TRUE, labels=names(cols_with_NA), cex.axis=.7, gap=3, ylab=c("Proportion of missingness","Missingness Pattern"))
+dev.off()
+```
+
+![MissingValues](D:\master\data\Montse\carinsurance\Missing_Pattern.jpeg)
+
+
+##Problemas que nos encontramos en nuestra base de datos:
+
+* Número elevado de Missing Values
+* Multicolinealidad 
+* Unbalanced Data. El 99,274% de las observaciones tienen Claim_Amount = 0.
+    * Under-Sampling: Eliminamos observaciones = 0, solo vale para ahorrar tiempo, perdemos información.
+    * Over-Sampling: Implica hacer copias de la Clase mínima causando overfitting.
+    * Este no suele ser un problema para la regressión logística.
+    * Métodos de penalización como Ridge o Lasso funcionan bien en regressiones binomial.
+    * logit and probit aproximan el 0 al mismo ratio que el 1.
