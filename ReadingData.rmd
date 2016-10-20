@@ -39,21 +39,20 @@ El fichero contiene los siguientes campos:
 
 Clasificar que vehículos tendrán siniestro con daño corporal en función de sus características.
 
-+ 
-+ 
-+
+    + Naive Bayes
+    + Trees (rpart)
+
 
 ####Segundo Objetivo:Regressión
 
 Es conseguir predecir en función de las características del vehículo los pagos por daño corporal ocasionados anualmente por cada vehículo.
 
-+ Random Forest Regresión.
+    + Random Forest Regresión.
     + Previsión Datos numéricos - Métodos de Regresión
         + GLM
         + LM (PCA)
         + SVM
         + GBM
-    + Neutral Networks
 
 
 **En nuestro estudio solo vamos a utilizar el fichero Training (Desglosado en dos Train/Test) puesto que solo la empresa aseguradora conoce los datos reales para los años 2008-2009 y por lo tanto no podemos hacer la validación con el fichero Test.**
