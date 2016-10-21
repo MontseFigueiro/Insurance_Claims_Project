@@ -42,6 +42,7 @@ train_completo$OrdCat <- as.factor(train_completo$OrdCat)
 cols <- c("Row_ID", "Household_ID", "Vehicle", "Calendar_Year", "Model_Year", "Blind_Make", "Blind_Model","Blind_Submodel", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6", "Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3","NVVar4", "Claim_Amount")
 train_completo <- train_completo[,cols]
 ```
+
 ```{r}
 train_completo$clasification <- as.factor(ifelse(train_completo$Claim_Amount==0,"0","1"))
 train_completo <- aggregate(Claim_Amount~Household_ID+Blind_Submodel+Model_Year+Cat1+Cat2+Cat3+Cat4+Cat5+Cat6+Cat7+Cat8+Cat9+OrdCat+Var1+Var2+Var3+Var4+Var5+Var6+Var7+Var8+NVCat+NVVar1+NVVar2+NVVar3+NVVar4+clasification,train_completo,sum)
@@ -154,11 +155,31 @@ table(pred_bayes1,bayes1_class)
 
 Tabla de Clasificación:
 
-
 |    |no | si|
 |----|---|----|
 |no|6242858|71218|
 |si|621|2|
+
+Accuracy:
+True Positive+ True Negative / Total Observations
+```{r}
+((table(pred_bayes1,bayes1_class)[4])+(table(pred_bayes1,bayes1_class)[1]))/(nrow(trainbayes1))
+```
+*0.9886235*
+
+Precisión:
+True Positives / (True Positives + False Positives).
+```{r}
+((table(pred_bayes1,bayes1_class)[4]))/((table(pred_bayes1,bayes1_class)[4])+(table(pred_bayes1,bayes1_class)[3]))
+```
+*0*
+
+Recall:
+True Positives / (True Positives + False Negatives).
+```{r}
+((table(pred_bayes1,bayes1_class)[4]))/((table(pred_bayes1,bayes1_class)[4])+(table(pred_bayes1,bayes1_class)[2]))
+```
+*0.00321*
 
 *Nos ha clasificado 2 de clase=1 correctamente y 621 incorrecamente*
 *Obtenemos un Accuracy elevado porque se trata de un dataset con una clase mayoritaria = 0 de más del 95% de los datos*
@@ -206,17 +227,26 @@ Tabla de Clasificación:
 |no|1699374|18294|
 |si|380007|5496|
 
-
-Accuracy del 81%
+Accuracy:
+True Positive+ True Negative / Total Observations
 ```{r}
-((table(pred_bayestest,testresult)[1])+(table(pred_bayestest,testresult)[4]))/nrow(test)
+((table(pred_bayestest,testresult)[4])+(table(pred_bayestest,testresult)[1]))/(nrow(test_NB))
 ```
-*clasifica la mayor parte de las observaciones como 0*
+*0.8106*
 
-Negative Predictive Value
+Precisión:
+True Positives / (True Positives + False Positives).
 ```{r}
-(table(pred_bayestest,testresult)[4])/((table(pred_bayestest,testresult)[4])+(table(pred_bayestest,testresult)[3]))
+((table(pred_bayestest,testresult)[4]))/((table(pred_bayestest,testresult)[4])+(table(pred_bayestest,testresult)[3]))
 ```
+*0.2310214*
+
+Recall:
+True Positives / (True Positives + False Negatives).
+```{r}
+((table(pred_bayestest,testresult)[4]))/((table(pred_bayestest,testresult)[4])+(table(pred_bayestest,testresult)[2]))
+```
+*0.0142567*
 
 ##SOLO CON LAS CARACTERÍSTICAS DEL VEHÍCULO
 
@@ -245,6 +275,27 @@ Tabla de Clasificación:
 |no|6243472|71220|
 |si|7|0|
 
+Accuracy:
+True Positive+ True Negative / Total Observations
+```{r}
+((table(pred_bayes_aggr,class_aggr)[4])+(table(pred_bayes_aggr,class_aggr)[1]))/(nrow(train))
+```
+*0.9887204*
+
+Precisión:
+True Positives / (True Positives + False Positives).
+```{r}
+((table(pred_bayes_aggr,class_aggr)[4]))/((table(pred_bayes_aggr,class_aggr)[4])+(table(pred_bayes_aggr,class_aggr)[3]))
+```
+*0*
+
+Recall:
+True Positives / (True Positives + False Negatives).
+```{r}
+((table(pred_bayes_aggr,class_aggr)[4]))/((table(pred_bayes_aggr,class_aggr)[4])+(table(pred_bayes_aggr,class_aggr)[2]))
+```
+*0*
+
 
 Aplicamos el Modelo de Naive Bayes al fichero Test:
 
@@ -261,6 +312,26 @@ Tabla de Clasificación:
 |no|2079379|23790|
 |si|2|0|
 
+Accuracy:
+True Positive+ True Negative / Total Observations
+```{r}
+((table(pred_bayestest2,testresult)[4])+(table(pred_bayestest2,testresult)[1]))/(nrow(test_NB2))
+```
+*0.9886876*
+
+Precisión:
+True Positives / (True Positives + False Positives).
+```{r}
+((table(pred_bayestest2,testresult)[4]))/((table(pred_bayestest2,testresult)[4])+(table(pred_bayestest2,testresult)[3]))
+```
+*0*
+
+Recall:
+True Positives / (True Positives + False Negatives).
+```{r}
+((table(pred_bayestest2,testresult)[4]))/((table(pred_bayestest2,testresult)[4])+(table(pred_bayestest2,testresult)[2]))
+```
+*0*
 
 ##UNDER-SAMPLING FOR UNBALANCED DATA
 
@@ -275,6 +346,20 @@ train_minor_class <- bayes1[bayes1$clasification!="0",]
 sample_major_class <- train_major_class[sample(nrow(train_major_class),nrow(train_minor_class),replace=FALSE),]
 train_balanced <- rbind(train_minor_class,sample_major_class)
 prop.table(table(train_balanced$clasification))
+```
+
+```{r}
+colsbayes1 <- c("Model_Year", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1cat", "Var2cat", "Var3cat", "Var4cat", "Var5cat", "Var6cat", "Var7cat", "Var8cat","NVCat","NVVar1","NVVar2","NVVar3","NVVar4")
+trainbayes1 <- bayes1[,colsbayes1]
+bayes1_class <- as.factor(bayes1[,"clasification"])
+modelo_bayes_aggr <- naiveBayes(trainbayes1,bayes1_class)
+```
+
+
+Aplicamos el Modelo al fichero train y validamos:
+```{r}
+pred_bayes1 <- predict(modelo_bayes_aggr,trainbayes1)
+table(pred_bayes1,bayes1_class)
 ```
 
 ```{r}
@@ -296,34 +381,213 @@ Tabla de Clasificación:
 |no|39215|32298|
 |si|32005|38922|
 
+Accuracy:
+True Positive+ True Negative / Total Observations
+```{r}
+((table(pred_bayes_balanced,class_balanced)[4])+(table(pred_bayes_balanced,class_balanced)[1]))/(nrow(train_bayes_balanced))
+```
+*0.5485608*
+
+Precisión:
+True Positives / (True Positives + False Positives).
+```{r}
+((table(pred_bayes_balanced,class_balanced)[4]))/((table(pred_bayes_balanced,class_balanced)[4])+(table(pred_bayes_balanced,class_balanced)[3]))
+```
+*0.5465038*
+
+Recall:
+True Positives / (True Positives + False Negatives).
+```{r}
+((table(pred_bayes_balanced,class_balanced)[4]))/((table(pred_bayes_balanced,class_balanced)[4])+(table(pred_bayes_balanced,class_balanced)[2]))
+```
+*0.5487614*
 
 Aplicamos el Modelo de Naive Bayes al fichero Test:
 
 ```{r}
 cols <- c("Model_Year", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1cat", "Var2cat", "Var3cat", "Var4cat", "Var5cat", "Var6cat", "Var7cat", "Var8cat","NVCat","NVVar1","NVVar2","NVVar3","NVVar4")
 test_NB_balanced <- test_bayes[,cols]
+testresult_balanced <- test_bayes[,"clasification"]
 pred_bayestest_balanced <- predict(modelo_bayes_balanced,test_NB_balanced)
-table(pred_bayestest_balanced,testresult)
+table(pred_bayestest_balanced,testresult_balanced)
 ```
 
 Tabla de Clasificación:
 
-
-|  |no     | si    |
+|  |0     | 1    |
 |--|-------|-------|
-|no|1200050|11562  |
-|si|879331 |12228  |
+|0|1200050|11562  |
+|1|879331 |12228  |
   
+Accuracy:
+True Positive+ True Negative / Total Observations
+```{r}
+((table(pred_bayestest_balanced,testresult_balanced)[4])+(table(pred_bayestest_balanced,testresult_balanced)[1]))/(nrow(test_NB_balanced))
+```
+*0.57642049*
+
+Precisión:
+True Positives / (True Positives + False Positives).
+```{r}
+((table(pred_bayestest_balanced,testresult_balanced)[4]))/((table(pred_bayestest_balanced,testresult_balanced)[4])+(table(pred_bayestest_balanced,testresult_balanced)[3]))
+```
+*0.5139975*
+
+Recall:
+True Positives / (True Positives + False Negatives).
+```{r}
+((table(pred_bayestest_balanced,testresult_balanced)[4]))/((table(pred_bayestest_balanced,testresult_balanced)[4])+(table(pred_bayestest_balanced,testresult_balanced)[2]))
+```
+*0.01377153*
 
 ###Calibración de probabilidades
 
 ```{r}
 pred_bayestest_balanced <- predict(modelo_bayes_balanced,test_NB_balanced,type = "raw")
 pred <- as.data.frame(pred_bayestest_balanced)
+```
+
+Si cogemos que la probabilidad de corte para que sea clasificación=1 (tiene daño corporal) que la probabilidad sea > que 0.5:
+```{r} 
 pred_50 <- as.factor(ifelse(pred$`1`>0.5,"1","0"))
 table(pred_50,testresult)
+```
+
+|  |0     | 1    |
+|--|-------|-------|
+|0|1200050|11562  |
+|1|879331 |12228  |
+
+Si cogemos que la probabilidad de corte para que sea clasificación=1 (tiene daño corporal) que la probabilidad sea > que 0.6:
+```{r}
 pred_60 <- as.factor(ifelse(pred$`1`>0.6,"1","0"))
 table(pred_60,testresult)
+```
+
+|  |0     | 1    |
+|--|-------|-------|
+|0|1506515|15368  |
+|1|572866 |8422  |
+
+Accuracy:
+True Positive+ True Negative / Total Observations
+```{r}
+((table(pred_60,testresult)[4])+(table(pred_60,testresult)[1]))/(nrow(pred))
+```
+*0.7203109*
+
+Precisión:
+True Positives / (True Positives + False Positives).
+```{r}
+((table(pred_60,testresult)[4]))/((table(pred_60,testresult)[4])+(table(pred_60,testresult)[3]))
+```
+*0.3540143*
+
+Recall:
+True Positives / (True Positives + False Negatives).
+```{r}
+((table(pred_60,testresult)[4]))/((table(pred_60,testresult)[4])+(table(pred_60,testresult)[2]))
+```
+*0.01448852*
+
+Si cogemos que la probabilidad de corte para que sea clasificación=1 (tiene daño corporal) que la probabilidad sea > que 0.7:
+```{r}
 pred_70 <- as.factor(ifelse(pred$`1`>0.7,"1","0"))
 table(pred_70,testresult)
 ```
+
+|  |0     | 1    |
+|--|-------|-------|
+|0|1776130|18923 |
+|1|303251 |4867  |
+
+
+Accuracy:
+True Positive+ True Negative / Total Observations
+```{r}
+((table(pred_70,testresult)[4])+(table(pred_70,testresult)[1]))/(nrow(pred))
+```
+*0.8468151*
+
+Precisión:
+True Positives / (True Positives + False Positives).
+```{r}
+((table(pred_70,testresult)[4]))/((table(pred_70,testresult)[4])+(table(pred_70,testresult)[3]))
+```
+*0.2045818*
+
+Recall:
+True Positives / (True Positives + False Negatives).
+```{r}
+((table(pred_70,testresult)[4]))/((table(pred_70,testresult)[4])+(table(pred_70,testresult)[2]))
+```
+*0.0157959*
+
+
+Si cogemos que la probabilidad de corte para que sea clasificación=1 (tiene daño corporal) que la probabilidad sea > que 0.9:
+```{r}
+pred_90 <- as.factor(ifelse(pred$`1`>0.9,"1","0"))
+table(pred_90,testresult)
+```
+
+|  |0     | 1    |
+|--|-------|-------|
+|0|2046476|23315 |
+|1|32905 |475  |
+
+
+Accuracy:
+True Positive+ True Negative / Total Observations
+```{r}
+((table(pred_90,testresult)[4])+(table(pred_90,testresult)[1]))/(nrow(pred))
+```
+*0.9732689*
+
+Precisión:
+True Positives / (True Positives + False Positives).
+```{r}
+((table(pred_90,testresult)[4]))/((table(pred_90,testresult)[4])+(table(pred_90,testresult)[3]))
+```
+*0.01996637*
+
+Recall:
+True Positives / (True Positives + False Negatives).
+```{r}
+((table(pred_90,testresult)[4]))/((table(pred_90,testresult)[4])+(table(pred_90,testresult)[2]))
+```
+*0.01423008*
+
+Si cogemos que la probabilidad de corte para que sea clasificación=1 (tiene daño corporal) que la probabilidad sea > que 0.95:
+```{r}
+pred_95 <- as.factor(ifelse(pred$`1`>0.95,"1","0"))
+table(pred_95,testresult)
+```
+
+|  |0     | 1    |
+|--|-------|-------|
+|0|2051729|23419 |
+|1|27652 |371  |
+
+
+Accuracy:
+True Positive+ True Negative / Total Observations
+```{r}
+((table(pred_95,testresult)[4])+(table(pred_95,testresult)[1]))/(nrow(pred))
+```
+*0.9757171*
+
+Precisión:
+True Positives / (True Positives + False Positives).
+```{r}
+((table(pred_95,testresult)[4]))/((table(pred_95,testresult)[4])+(table(pred_95,testresult)[3]))
+```
+*0.01559479*
+
+Recall:
+True Positives / (True Positives + False Negatives).
+```{r}
+((table(pred_95,testresult)[4]))/((table(pred_95,testresult)[4])+(table(pred_95,testresult)[2]))
+```
+*0.01323913*
+
+
