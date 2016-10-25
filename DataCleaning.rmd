@@ -86,20 +86,19 @@ cols <- c("Row_ID", "Household_ID", "Vehicle", "Calendar_Year", "Model_Year", "B
 train <- train[,cols]
 ```
 
-Eliminamos las observaciones repetidas, el mismo coche puede estar asegurado en distintos años, lo dejamos como una observación única:
+Eliminamos las observaciones repetidas que tienen importe 0, el mismo coche puede estar asegurado en distintos años, lo dejamos como una observación única:
 ```{r}
 prueba <- train
-prueba$clasification <- as.factor(ifelse(prueba$Claim_Amount==0,"0","1"))
-train_household <- aggregate(Claim_Amount~Household_ID+Blind_Submodel+Model_Year+Cat1+Cat2+Cat3+Cat4+Cat5+Cat6+Cat7+Cat8+Cat9+OrdCat+Var1+Var2+Var3+Var4+Var5+Var6+Var7+Var8+NVCat+NVVar1+NVVar2+NVVar3+NVVar4+clasification,prueba,sum)
+prueba_amount <- prueba[prueba$Claim_Amount!=0,]
+prueba <- prueba[prueba$Claim_Amount==0,]
 ```
-Vamos a agregar Claim_Amount, calculando el Total, la media y el número de observaciones con importe por daño corporal y sin importe, para cada observación, para ello no vamos a tener en cuenta el año de la póliza, ya que existen vehículos repetidos
+Vamos a agregar Claim_Amount, para ello NO vamos a tener en cuenta el año de la póliza, ya que existen vehículos repetidos en los diferentes años, esto nos dará una base de datos reducidos con los vehículos que cumplen con las mismas características y que no han tenido ningún daño corporal.
 ```{r}
-train_reducido <- aggregate(Claim_Amount~Blind_Submodel+Model_Year+Cat1+Cat2+Cat3+Cat4+Cat5+Cat6+Cat7+Cat8+Cat9+OrdCat+Var1+Var2+Var3+Var4+Var5+Var6+Var7+Var8+NVCat+NVVar1+NVVar2+NVVar3+NVVar4+clasification,train_household,FUN = function(x) c(TotalAmount = sum(x), freqAmount = length(x), MediaAmount=mean(x) ))
-train_reducido$TotalAmount <- train_reducido$Claim_Amount[,1]
-train_reducido$FreqAmount <- train_reducido$Claim_Amount[,2]
-train_reducido$MediaAmount <- train_reducido$Claim_Amount[,3]
-train_reducido$Claim_Amount <- NULL
-head(train_reducido[order(-train_reducido$TotalAmount),])
+train_reducido <- aggregate(Claim_Amount~Blind_Submodel+Model_Year+Cat1+Cat2+Cat3+Cat4+Cat5+Cat6+Cat7+Cat8+Cat9+OrdCat+Var1+Var2+Var3+Var4+Var5+Var6+Var7+Var8+NVCat+NVVar1+NVVar2+NVVar3+NVVar4,prueba,sum)
+train_reducido_agr <- train_reducido
+cols <- c( "Blind_Submodel","Model_Year", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6", "Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3","NVVar4", "Claim_Amount")
+pruebaamount <- prueba_amount[,cols]
+train_reducido <- rbind(pruebaamount,train_reducido_agr)
 ```
 
 ##TRATAMIENTO MISSING VALUES
@@ -178,8 +177,6 @@ write.csv(datadf,"datos_Mice.csv",row.names=FALSE)
 ```
 
 
-
-
 Pasamos los valores imputados a "train" para eso vamos a crear un id que va a ser la unión de Blind_Submodel+Cat1+Cat2.....Cat9, en las dos tablas para poder hacer el merge con train.
 ```{r}
 train_reducido[train_reducido=="?"] <- NA
@@ -205,16 +202,13 @@ traindf$Cat8[is.na(traindf$Cat8)] <- traindf$Cat8m[is.na(traindf$Cat8)]
 traindf$OrdCat[is.na(traindf$OrdCat)] <- traindf$OrdCatm[is.na(traindf$OrdCat)]
 
 #Seleccionamos las columnas que necesitamos, dejando las columnas que hemos utilizado para la limpieza del archivo.
-traindf <- traindf[,2:30]
+traindf <- traindf[,2:27]
 
 #Sustitución de los Modelos con NA por "Desconocido", recordamos que al abrir el fichero con fread nos elimina el tipo de variable y tenemos que volver a pasar a factor:
 traindf$Blind_Submodel<- as.character(traindf$Blind_Submodel)
 traindf$Blind_Submodel[is.na(traindf$Blind_Submodel)] <- "Desconocido"
 traindf$Blind_Submodel<- factor(traindf$Blind_Submodel)
-head(traindf[order(-traindf$TotalAmount),])
-head(traindf[order(-traindf$FreqAmount),])
-head(traindf[order(-traindf$MediaAmount),])
-prop.table(table(traindf$clasification))
+traindf <- traindf[complete.cases(traindf),]
 ```
 
 Grabamos el fichero para no volver a tener que ejecutar todos los pasos previos de limpieza.
@@ -222,7 +216,7 @@ Grabamos el fichero para no volver a tener que ejecutar todos los pasos previos 
 write.csv(traindf,"traindf.csv",row.names = FALSE)
 ```
 
-Limpieza Test:
+Limpieza de fichero Test, sustitución NA's a partir de nuestra imputación con MICE:
 ```{r}
 test[test=="?"] <- NA
 test$ID <- paste(test$Blind_Submodel,test$Model_Year,test$Cat1,test$Cat2,test$Cat3,test$Cat4,test$Cat5,test$Cat6,test$Cat7,test$Cat8,test$Cat9,test$OrdCat,sep="")
@@ -239,16 +233,18 @@ testdf$Cat7[is.na(testdf$Cat7)] <- testdf$Cat7m[is.na(testdf$Cat7)]
 testdf$Cat8[is.na(testdf$Cat8)] <- testdf$Cat8m[is.na(testdf$Cat8)]
 testdf$OrdCat[is.na(testdf$OrdCat)] <- testdf$OrdCatm[is.na(testdf$OrdCat)]
 
+
 #Seleccionamos las columnas que necesitamos, dejando las columnas que hemos utilizado para la limpieza del archivo.
-testdf <- testdf[,2:36]
+cols <- c("Row_ID", "Household_ID", "Vehicle", "Calendar_Year", "Model_Year", "Blind_Submodel", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6", "Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3", "NVVar4", "Claim_Amount")
+testdf <- testdf[,cols]
+
 
 #Sustitución de los Modelos con NA por "Desconocido", recordamos que al abrir el fichero con fread nos elimina el tipo de variable y tenemos que volver a pasar a factor:
 testdf$Blind_Submodel<- as.character(testdf$Blind_Submodel)
 testdf$Blind_Submodel[is.na(testdf$Blind_Submodel)] <- "Desconocido"
 testdf$Blind_Submodel<- factor(testdf$Blind_Submodel)
-head(testdf[order(-testdf$TotalAmount),])
-head(testdf[order(-testdf$FreqAmount),])
-head(testdf[order(-testdf$MediaAmount),])
+
+testdf <- testdf[complete.cases(testdf),]
 ```
 
 
