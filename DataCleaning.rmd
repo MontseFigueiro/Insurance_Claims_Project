@@ -253,3 +253,44 @@ Grabamos el fichero para no volver a tener que ejecutar todos los pasos previos 
 write.csv(testdf,"testdf.csv",row.names = FALSE)
 ```
 
+
+```{r}
+
+cols <- c("Row_ID", "Household_ID", "Vehicle", "Calendar_Year", "Model_Year", "Blind_Submodel", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6", "Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3", "NVVar4", "Claim_Amount")
+train_completo <- train_completo[,cols]
+train_completo[train_completo=="?"] <- NA
+train_completo$ID <- paste(train_completo$Blind_Submodel,train_completo$Model_Year,train_completo$Cat1,train_completo$Cat2,train_completo$Cat3,train_completo$Cat4,train_completo$Cat5,train_completo$Cat6,train_completo$Cat7,train_completo$Cat8,train_completo$Cat9,train_completo$OrdCat,sep="")
+train_completodf <- merge(train_completo,datadf,by="ID",all.x = TRUE)
+train_completodf$Cat1[is.na(train_completodf$Cat1)] <- train_completodf$Cat1m[is.na(train_completodf$Cat1)]
+train_completodf$Cat2[is.na(train_completodf$Cat2)] <- train_completodf$Cat2m[is.na(train_completodf$Cat2)]
+train_completodf$Cat3[is.na(train_completodf$Cat3)] <- train_completodf$Cat3m[is.na(train_completodf$Cat3)]
+train_completodf$Cat4[is.na(train_completodf$Cat4)] <- train_completodf$Cat4m[is.na(train_completodf$Cat4)]
+train_completodf$Cat5[is.na(train_completodf$Cat5)] <- train_completodf$Cat5m[is.na(train_completodf$Cat5)]
+train_completodf$Cat6[is.na(train_completodf$Cat6)] <- train_completodf$Cat6m[is.na(train_completodf$Cat6)]
+train_completodf$Cat7[is.na(train_completodf$Cat7)] <- train_completodf$Cat7m[is.na(train_completodf$Cat7)]
+train_completodf$Cat8[is.na(train_completodf$Cat8)] <- train_completodf$Cat8m[is.na(train_completodf$Cat8)]
+train_completodf$OrdCat[is.na(train_completodf$OrdCat)] <- train_completodf$OrdCatm[is.na(train_completodf$OrdCat)]
+train_completodf$Blind_Submodel<- as.character(train_completodf$Blind_Submodel)
+train_completodf$Blind_Submodel[is.na(train_completodf$Blind_Submodel)] <- "Desconocido"
+train_completodf$Blind_Submodel<- factor(train_completodf$Blind_Submodel)
+```
+
+```{r}
+write.csv(train_completodf,"train_completo_limpio.csv",row.names = FALSE)
+```
+
+##FICHERO TRAIN BALANCEADO
+
+El paquete caret tiene una función downsample que se encarga de igualar la clase mayoritaria a la minoritaria, en número de observaciones.
+
+```{r}
+library(caret)
+traindf$clasification <- as.factor(ifelse(traindf$Claim_Amount==0,"0","1"))
+down_train <- downSample(x = traindf[, -ncol(traindf)],y = traindf$clasification)
+table(down_train$Class)   
+```
+Vamos a grabar nuestro Train balanceado para partir de él en todos nuestros modelos y así poder compararlos en base a las mismas observaciones:
+```{r} 
+write.csv(down_train,"train_downSample.csv",row.names = FALSE)
+```
+

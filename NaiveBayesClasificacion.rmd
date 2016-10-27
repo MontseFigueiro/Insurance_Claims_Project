@@ -17,87 +17,27 @@ El método de clasificación Naive Bayes asume que todas las variables son indepen
 - Crea una tabla con las probabilidades a partir de las frecuencias.
 - Calcula la probabilidad para cada clase, tendremos dos columnas 0 y 1 y los valores serán las probabilidades para cada observación, el valor más grande es el outcome de la predicción.
 
-###carga de Ficheros
-
-###Carga Fichero
+###Carga librarias
 
 ```{r}
-library(data.table)
 library(e1071)
-train_completo <- fread("train_set.csv")
-datadf <- read.csv("datos_Mice.csv")
 ```
 
-###Cambiamos variables del fichero train
+###Carga de Ficheros y creación variable "clasification"
 ```{r}
-library(plyr)
-memory.limit(60000)
-train_completo <- as.data.frame(train_completo)
-train_completo[6:20] <- lapply(train_completo[6:20], as.factor) 
-train_completo$NVCat <- as.factor(train_completo$NVCat)
-train_completo$OrdCat <- as.factor(train_completo$OrdCat)
-```
-
-```{r}
-cols <- c("Row_ID", "Household_ID", "Vehicle", "Calendar_Year", "Model_Year", "Blind_Make", "Blind_Model","Blind_Submodel", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6", "Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3","NVVar4", "Claim_Amount")
-train_completo <- train_completo[,cols]
-```
-
-```{r}
-train_completo$clasification <- as.factor(ifelse(train_completo$Claim_Amount==0,"0","1"))
-train_completo <- aggregate(Claim_Amount~Household_ID+Blind_Submodel+Model_Year+Cat1+Cat2+Cat3+Cat4+Cat5+Cat6+Cat7+Cat8+Cat9+OrdCat+Var1+Var2+Var3+Var4+Var5+Var6+Var7+Var8+NVCat+NVVar1+NVVar2+NVVar3+NVVar4+clasification,train_completo,sum)
-```
-```{r}
-train_completo[train_completo=="?"] <- NA
-train_completo$ID <- paste(train_completo$Blind_Submodel,train_completo$Model_Year,train_completo$Cat1,train_completo$Cat2,train_completo$Cat3,train_completo$Cat4,train_completo$Cat5,train_completo$Cat6,train_completo$Cat7,train_completo$Cat8,train_completo$Cat9,train_completo$OrdCat,sep="")
-datadf$ID <- paste(datadf$Blind_Submodel,datadf$Model_Year,datadf$Cat1,datadf$Cat2,datadf$Cat3,datadf$Cat4,datadf$Cat5,datadf$Cat6,datadf$Cat7,datadf$Cat8,datadf$Cat9,datadf$OrdCat, sep="")
-train_completo$ID <- as.factor(train_completo$ID)
-datadf$ID <- as.factor(datadf$ID)
-datadf <- datadf[,16:26]
-head(datadf)
-traindf<- merge(train_completo,datadf,by="ID",all.x = TRUE)
-
-#Reemplazamos los NA con los valores que nos ha imputado MICE
-traindf$Cat1[is.na(traindf$Cat1)] <- traindf$Cat1m[is.na(traindf$Cat1)]
-traindf$Cat2[is.na(traindf$Cat2)] <- traindf$Cat2m[is.na(traindf$Cat2)]
-traindf$Cat3[is.na(traindf$Cat3)] <- traindf$Cat3m[is.na(traindf$Cat3)]
-traindf$Cat4[is.na(traindf$Cat4)] <- traindf$Cat4m[is.na(traindf$Cat4)]
-traindf$Cat5[is.na(traindf$Cat5)] <- traindf$Cat5m[is.na(traindf$Cat5)]
-traindf$Cat6[is.na(traindf$Cat6)] <- traindf$Cat6m[is.na(traindf$Cat6)]
-traindf$Cat7[is.na(traindf$Cat7)] <- traindf$Cat7m[is.na(traindf$Cat7)]
-traindf$Cat8[is.na(traindf$Cat8)] <- traindf$Cat8m[is.na(traindf$Cat8)]
-traindf$OrdCat[is.na(traindf$OrdCat)] <- traindf$OrdCatm[is.na(traindf$OrdCat)]
-
-#Seleccionamos las columnas que necesitamos, dejando las columnas que hemos utilizado para la limpieza del archivo.
-traindf <- traindf[,2:29]
-
-#Sustitución de los Modelos con NA por "Desconocido", recordamos que al abrir el fichero con fread nos elimina el tipo de variable y tenemos que volver a pasar a factor:
-traindf$Blind_Submodel<- as.character(traindf$Blind_Submodel)
-traindf$Blind_Submodel[is.na(traindf$Blind_Submodel)] <- "Desconocido"
-traindf$Blind_Submodel<- factor(traindf$Blind_Submodel)
-prop.table(table(traindf$clasification))
-```
-
-Guardamos una copia del fichero:
-```{r}
-write.csv(traindf,"train_obs_unicas_completo.csv",row.names=FALSE)
-```
-
-
-###DIVIDIMOS EL DATASET EN TRAIN Y TEST
-
-
-```{r}
-idx <- sample(seq(1, 2), size = nrow(traindf), replace = TRUE, prob = c(.75, .25))
-train <- traindf[idx == 1,]
-test <- traindf[idx == 2,]
+train <- read.csv("traindf.csv")
+train$clasification <- as.factor(ifelse(train$Claim_Amount!=0,"1","0"))
+test <- read.csv("testdf.csv")
+test$clasification <- as.factor(ifelse(test$Claim_Amount!=0,"1","0"))
+train_down <- read.csv("train_downSample.csv")
+train_down$clasification <- as.factor(ifelse(train_down$Claim_Amount!=0,"1","0"))
 ```
 
 ##CLASIFICACIÓN CON NAIVE BAYES
 
-##CARACTERISTICAS DEL VEHÍCULO Y DE LA POLIZA
+###CARACTERISTICAS DEL VEHÍCULO Y DE LA POLIZA
 
-###Bayes con Unbalanced Data
+###Bayes con Datos Desequilibrados
 
 Nuestro DataSet no está equilibrado más del 95% de las observaciones son clasification=0, esto genera problemas a la hora de calcular los modelos y clasificar puesto que cualquier modelo tenderá a poner el valor de la clase mayoritaria.
 
@@ -106,7 +46,7 @@ cols <-c("Blind_Submodel","Model_Year", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", 
 bayes1 <- train[,cols]
 ```
 
-Pasamos las numéricas a categóricas:
+Pasamos las numéricas a categóricas con los datos que nos proporcionan los quantiles:
 ```{r}
 quantiles <- as.vector(quantile(bayes1$Var1, prob = seq(0, 1, length = 11), type = 5))
 quantiles2 <- as.vector(quantile(bayes1$Var2, prob = seq(0, 1, length = 11), type = 5))
@@ -140,7 +80,7 @@ bayes1$NVVar3 <- as.factor(bayes1$NVVar3)
 bayes1$NVVar4 <- as.factor(bayes1$NVVar4)
 ```
 
-Creamos el Modelo
+Creamos el Modelo a partir del fichero Train Agregado:
 ```{r}
 colsbayes1 <- c("Model_Year", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1cat", "Var2cat", "Var3cat", "Var4cat", "Var5cat", "Var6cat", "Var7cat", "Var8cat","NVCat","NVVar1","NVVar2","NVVar3","NVVar4")
 trainbayes1 <- bayes1[,colsbayes1]
@@ -153,42 +93,41 @@ pred_bayes1 <- predict(modelo_bayes1,trainbayes1)
 table(pred_bayes1,bayes1_class)
 ```
 
-Tabla de Clasificación:
+CONFUSION MATRIX:
 
 |    |no | si|
 |----|---|----|
-|no|6242858|71218|
-|si|621|2|
+|no|58309|42831|
+|si|37663|28951|
 
 Accuracy:
 True Positive+ True Negative / Total Observations
 ```{r}
 ((table(pred_bayes1,bayes1_class)[4])+(table(pred_bayes1,bayes1_class)[1]))/(nrow(trainbayes1))
 ```
-*0.9886235*
+*0.8833004*
 
 Precisión:
 True Positives / (True Positives + False Positives).
 ```{r}
 ((table(pred_bayes1,bayes1_class)[4]))/((table(pred_bayes1,bayes1_class)[4])+(table(pred_bayes1,bayes1_class)[3]))
 ```
-*0*
+*0.4033184*
 
 Recall:
 True Positives / (True Positives + False Negatives).
 ```{r}
 ((table(pred_bayes1,bayes1_class)[4]))/((table(pred_bayes1,bayes1_class)[4])+(table(pred_bayes1,bayes1_class)[2]))
 ```
-*0.00321*
+*0.4346083*
 
-*Nos ha clasificado 2 de clase=1 correctamente y 621 incorrecamente*
+*Nos ha clasificado 28951 de clase=1 correctamente y 37663 incorrecamente*
 *Obtenemos un Accuracy elevado porque se trata de un dataset con una clase mayoritaria = 0 de más del 95% de los datos*
 
 ###MODELO APLICADO A TEST
 
 Cambiamos Tipo de Variables Continuas a categóricas en el fichero Test:
 ```{r}
-test$clasification <- ifelse(test$Claim_Amount==0,"0","1")
 test_bayes <- test
 test_bayes$Var1cat <- cut(test_bayes$Var1,breaks=c(-Inf,-2.578222, -0.9230164, -0.7141069, -0.6176872, -0.4569876, -0.3605679, -0.1195186, 0.1777756, 0.5875594, 1.447302, 5.143392,Inf),quantiles=FALSE,labels = c("A","B","C","D","E","F","G","H","I","J","K","L"))
 test_bayes$Var2cat <- cut(test_bayes$Var2,breaks=c(-Inf,-2.493393, -1.231139, -0.9890633, -0.7296962, -0.5222025, -0.2109619,0.0484052, 0.2213167, 0.740051, 1.17233, 7.82942,Inf),labels = c("A","B","C","D","E","F","G","H","I","J","K","L"))
@@ -224,29 +163,29 @@ Tabla de Clasificación:
 
 |    |no | si|
 |----|---|----|
-|no|1699374|18294|
-|si|380007|5496|
+|no|1837707|13632|
+|si|1434037|10191|
 
 Accuracy:
 True Positive+ True Negative / Total Observations
 ```{r}
 ((table(pred_bayestest,testresult)[4])+(table(pred_bayestest,testresult)[1]))/(nrow(test_NB))
 ```
-*0.8106*
+*0.5607223*
 
 Precisión:
 True Positives / (True Positives + False Positives).
 ```{r}
 ((table(pred_bayestest,testresult)[4]))/((table(pred_bayestest,testresult)[4])+(table(pred_bayestest,testresult)[3]))
 ```
-*0.2310214*
+*0.4277799*
 
 Recall:
 True Positives / (True Positives + False Negatives).
 ```{r}
 ((table(pred_bayestest,testresult)[4]))/((table(pred_bayestest,testresult)[4])+(table(pred_bayestest,testresult)[2]))
 ```
-*0.0142567*
+*0.007056365*
 
 ##SOLO CON LAS CARACTERÍSTICAS DEL VEHÍCULO
 
@@ -272,29 +211,29 @@ Tabla de Clasificación:
 
 |    |no | si  |
 |----|---|-----|
-|no|6243472|71220|
-|si|7|0|
+|no|569063|59114|
+|si|48909|12668|
 
 Accuracy:
 True Positive+ True Negative / Total Observations
 ```{r}
 ((table(pred_bayes_aggr,class_aggr)[4])+(table(pred_bayes_aggr,class_aggr)[1]))/(nrow(train))
 ```
-*0.9887204*
+*0.8433891*
 
 Precisión:
 True Positives / (True Positives + False Positives).
 ```{r}
 ((table(pred_bayes_aggr,class_aggr)[4]))/((table(pred_bayes_aggr,class_aggr)[4])+(table(pred_bayes_aggr,class_aggr)[3]))
 ```
-*0*
+*0.1764788*
 
 Recall:
 True Positives / (True Positives + False Negatives).
 ```{r}
 ((table(pred_bayes_aggr,class_aggr)[4]))/((table(pred_bayes_aggr,class_aggr)[4])+(table(pred_bayes_aggr,class_aggr)[2]))
 ```
-*0*
+*0.2057262*
 
 
 Aplicamos el Modelo de Naive Bayes al fichero Test:
@@ -309,29 +248,29 @@ Tabla de Clasificación:
 
 |    |no | si |
 |----|---|----|
-|no|2079379|23790|
-|si|2|0|
+|no|2792867|19609|
+|si|478877|4214|
 
 Accuracy:
 True Positive+ True Negative / Total Observations
 ```{r}
 ((table(pred_bayestest2,testresult)[4])+(table(pred_bayestest2,testresult)[1]))/(nrow(test_NB2))
 ```
-*0.9886876*
+*0.8487404*
 
 Precisión:
 True Positives / (True Positives + False Positives).
 ```{r}
 ((table(pred_bayestest2,testresult)[4]))/((table(pred_bayestest2,testresult)[4])+(table(pred_bayestest2,testresult)[3]))
 ```
-*0*
+*0.1768879*
 
 Recall:
 True Positives / (True Positives + False Negatives).
 ```{r}
 ((table(pred_bayestest2,testresult)[4]))/((table(pred_bayestest2,testresult)[4])+(table(pred_bayestest2,testresult)[2]))
 ```
-*0*
+*0.008722994*
 
 ##UNDER-SAMPLING FOR UNBALANCED DATA
 

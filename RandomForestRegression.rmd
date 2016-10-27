@@ -1,0 +1,174 @@
+---
+title: "Regresión con Random Forest"
+author: "Montse Figueiro & Aniana González"
+date: "27 de octubre de 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##REGRESIÓN CON RANDOM FOREST
+```{r}
+library(caret)
+library(randomForest)
+memory.limit(90000)
+```
+
+###Carga de Datos
+
+Utilizamos las mismas 5000 observaciones que habíamos utilizado para el resto de los modelos y así poder realizar la comparativa final.
+
+```{r}
+sample_train <- read.csv("sample_train_5000.csv")
+sample_train_down <- read.csv("sample_train_down.csv")
+test <- read.csv("testdf.csv")
+```
+
+###Fichero Test para Validación
+
+```{r}
+cols <- c("Model_Year", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6","Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3", "NVVar4")
+test_rf <- test[,cols]
+test_rf_output <- test[,"Claim_Amount"]
+```
+
+
+##RANDOM FOREST REGRESIÓN CON DATOS DESEQUILIBRADOS
+
+Random Forest es uno de los algoritmos de aprendizaje más certeros que hay disponible basado en árboles. Es difícil de interpretar. 
+
+###SIN LOG TRANSFORMACIÓN
+
+```{r}
+model_rf1 <- randomForest(Claim_Amount ~ ., data=sample_train, mtry=3,importance=TRUE, na.action=na.omit)
+varImp(model_rf1)
+prediction1 <- predict(model_rf1,test_rf)
+sqrt(mean((test_rf_output-prediction1)^2))
+```
+RSME = 89.85625
+
+###CON LOG TRANSFORMACIÓN
+
+```{r}
+model_rf2 <- randomForest(log(Claim_Amount+1) ~ ., data=sample_train, mtry=3,importance=TRUE, na.action=na.omit)
+varImp(model_rf2)
+prediction2 <- predict(model_rf2,test_rf)
+sqrt(mean((test_rf_output-prediction2)^2))
+```
+RSME = 39.3542
+
+##K-FOLD CROSS-VALIDATION CON CARET 
+
+###Sin LOG transformación
+```{r}
+ctrl <- trainControl(method="repeatedcv",number = 5)
+model_caret_rf <- train(Claim_Amount~.,data=sample_train, method = "rf", trControl = ctrl)
+model_caret_rf
+```
+mtry  RMSE      Rsquared  
+   2    111.3919  0.02040256
+  30    115.5130  0.02266875
+  58    119.2584  0.01360726
+
+```{r}
+prediction_caret <- predict(model_caret_rf,test_rf)
+sqrt(mean((test_rf_output-prediction_caret)^2))
+```
+RSME= 55.47
+
+###Con LOG transformación
+
+```{r}
+ctrl <- trainControl(method="repeatedcv",number = 5)
+model_caret_rf_log <- train(log(Claim_Amount+1)~.,data=sample_train, method = "rf", trControl = ctrl)
+model_caret_rf_log
+```
+
+ mtry  RMSE      Rsquared 
+   2    1.193102  0.1413571
+  30    1.175708  0.1501784
+  58    1.202918  0.1284524
+
+```{r}
+prediction_caret_log <- predict(model_caret_rf_log,test_rf)
+sqrt(mean((test_rf_output-prediction_caret_log)^2))
+```
+39.36
+
+##REGRESION SVR CON DATOS EQUILIBRADOS
+
+Vamos a partir del fichero downSample como para el resto de nuestros modelos para ajustar el modelo y comprobar con la predicción sobre el fichero test cual es el RMSE.
+
+###SIN LOG TRANSFORMACIÓN
+
+```{r}
+model_rf3 <- randomForest(Claim_Amount~., data=sample_train_down,mtry=3,importance=TRUE, na.action=na.omit)
+varImp(model_rf3)
+prediction3 <- predict(model_rf3,test_rf)
+sqrt(mean((test_rf_output-prediction3)^2))
+```
+RSME = 185.84
+
+
+###CON LOG TRANSFORMACIÓN
+
+```{r}
+model_rf4 <- randomForest(log(Claim_Amount+1)~., data=sample_train_down,mtry=3,importance=TRUE, na.action=na.omit)
+varImp(model_rf4)
+prediction4 <- predict(model_rf4,test_rf)
+sqrt(mean((test_rf_output-prediction4)^2))
+```
+RSME = 39.38
+
+
+##K-FOLD CROSS-VALIDATION CON CARET en Datos Equilibrados
+
+###Sin LOG transformación
+```{r}
+ctrl <- trainControl(method="repeatedcv",number = 5)
+model_caret_rf2 <- train(Claim_Amount~.,data=sample_train_down, method = "rf", trControl = ctrl)
+model_caret_rf2
+min(model_caret_rf2$results["RMSE"])
+```
+
+mtry  RMSE      Rsquared  
+   2    285.6096  0.03733030
+  30    301.3598  0.01857029
+  58    306.9535  0.01545637
+
+```{r}
+prediction_caret2 <- predict(model_caret_rf2,test_rf)
+sqrt(mean((test_rf_output-prediction_caret2)^2))
+```
+130.7403
+
+###Con LOG transformación
+
+```{r}
+ctrl <- trainControl(method="repeatedcv",number = 5)
+model_caret_rf_log2 <- train(log(Claim_Amount+1)~.,data=sample_train_down, method = "rf", trControl = ctrl)
+model_caret_rf_log2
+min(model_caret_rf_log2$results["RMSE"])
+```
+
+mtry  RMSE      Rsquared 
+   2    1.986962  0.3214529
+  30    1.854224  0.3524953
+  58    1.884988  0.3344549
+
+```{r}
+prediction_caret_log2 <- predict(model_caret_rf_log2,test_rf)
+sqrt(mean((test_rf_output-prediction_caret_log2)^2))
+```
+39.39541
+
+##Seleccionamos modelo con menor RSME
+
+Prediction2 con log transformación y sin equilibrar.
+
+```{r}
+test$predRF <- prediction2
+write.csv(test,"testdf.csv",row.names = FALSE)
+```

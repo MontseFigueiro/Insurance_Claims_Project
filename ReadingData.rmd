@@ -139,6 +139,7 @@ d$Porcentaje_Claim <- round((d$Obs.Claim/d$Obs.Totales)*100,2)
 |2005|4025672|30148|0.007488|
 |2006|4447730|31690|0.007124|
 |2007|4710888|33767|0.007167|
+| TOTAL|13184290|95605||
 
 Número de Casas aseguradas: 
 ```{r}

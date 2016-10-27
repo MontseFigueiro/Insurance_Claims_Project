@@ -1,0 +1,181 @@
+---
+title: "Regresión con Árboles de Decisiones"
+author: "Montse Figueiro & Aniana González"
+date: "27 de octubre de 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##REGRESIÓN CON ARBOLES DE DECISIÓN
+```{r}
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(rattle)
+memory.limit(90000)
+```
+
+###Carga de Datos
+
+```{r}
+sample_train <- read.csv("sample_train_5000.csv")
+test <- read.csv("testdf.csv")
+sample_train_down <- read.csv("sample_train_down.csv")
+```
+
+###Fichero Test para Validación
+
+```{r}
+cols <- c("Model_Year", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6","Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3", "NVVar4")
+test_tree <- test[,cols]
+test_tree_output <- test[,"Claim_Amount"]
+```
+
+
+##RPART ÁRBOLES DE DECISIÓN - REGRESIÓN CON DATOS DESEQUILIBRADOS
+
+###SIN LOG TRANSFORMACIÓN
+
+```{r}
+model_rpart1 <- rpart(Claim_Amount~., sample_train)
+prediction1 <- predict(model_rpart1,test_tree)
+sqrt(mean((test_tree_output-prediction1)^2))
+```
+RSME = 112.3623
+
+###CON LOG TRANSFORMACIÓN
+
+```{r}
+model_rpart2 <- rpart(log(Claim_Amount+1)~., sample_train)
+summary(model_rpart2)
+prediction2 <- predict(model_rpart2,test_tree)
+sqrt(mean((test_tree_output-prediction2)^2))
+```
+RSME= 39.36267
+
+##K-FOLD CROSS-VALIDATION CON CARET
+
+###Sin LOG transformación
+```{r}
+ctrl <- trainControl(method="repeatedcv",repeats=5,number = 10)
+model_caret_rpart <- train(Claim_Amount~.,data=sample_train, method = "rpart", trControl = ctrl)
+model_caret_rpart
+rpartImp1 <- varImp(model_caret_rpart,scale=FALSE)
+```
+Plot Tree Final Model
+```{r}
+fancyRpartPlot(model_caret_rpart$finalModel)
+```
+ cp           RMSE      Rsquared   
+  0.007416263  111.5430  0.010437723
+  0.009832359  110.7779  0.013886711
+  0.019693905  110.7876  0.004619558
+
+```{r}
+prediction_caret <- predict(model_caret_rpart,test_tree)
+sqrt(mean((test_tree_output-prediction_caret)^2))
+```
+RSME= 72.92559
+
+###Con LOG transformación
+
+```{r}
+ctrl <- trainControl(method="repeatedcv",repeats=5,number = 10)
+model_caret_rpart_log <- train(log(Claim_Amount+1)~.,data=sample_train, method = "rpart", trControl = ctrl)
+model_caret_rpart_log
+```
+
+Plot Tree Final Model
+```{r}
+fancyRpartPlot(model_caret_rpart_log$finalModel)
+```
+
+ cp          RMSE      Rsquared  
+  0.02139411  1.211623  0.08225260
+  0.02490962  1.227433  0.05732485
+  0.04635521  1.255549  0.02646378
+
+```{r}
+prediction_caret_log <- predict(model_caret_rpart_log,test_tree)
+sqrt(mean((test_tree_output-prediction_caret_log)^2))
+```
+39.35003
+
+##REGRESION SVR CON DATOS EQUILIBRADOS
+
+###SIN LOG TRANSFORMACIÓN
+
+```{r}
+model_rpart3 <- rpart(Claim_Amount~., sample_train_down)
+prediction3 <- predict(model_rpart3,test_tree)
+sqrt(mean((test_tree_output-prediction3)^2))
+```
+RSME =  140.9362
+
+###CON LOG TRANSFORMACIÓN
+
+```{r}
+model_rpart4 <- rpart(log(Claim_Amount+1)~., sample_train_down)
+prediction4 <- predict(model_rpart4,test_tree)
+sqrt(mean((test_tree_output-prediction4)^2))
+```
+RSME =  39.38349
+
+##K-FOLD CROSS-VALIDATION CON CARET PARA "Least Squares Support Vector Machine" en Datos Equilibrados
+
+Si lo ejecutamos con method= "svmLinear" los resultados son los mismos que ejecutando CVM con el paquete "e1071". 
+
+###Sin LOG transformación
+```{r}
+ctrl <- trainControl(method="repeatedcv",repeats=5,number = 10)
+model_caret_rpart2 <- train(Claim_Amount~.,data=sample_train_down, method = "rpart", trControl = ctrl)
+model_caret_rpart2
+```
+Plot Tree Final Model
+```{r}
+fancyRpartPlot(model_caret_rpart2$finalModel)
+```
+
+ cp           RMSE      Rsquared  
+  0.007589039  282.3014  0.04081931
+  0.012533955  283.5235  0.03100314
+  0.024593204  286.8115  0.01324317
+
+```{r}
+prediction_caret2 <- predict(model_caret_rpart2,test_tree)
+sqrt(mean((test_tree_output-prediction_caret2)^2))
+```
+144.7657
+
+###Con LOG transformación
+
+```{r}
+ctrl <- trainControl(method="repeatedcv",repeats=5,number = 10)
+model_caret_rpart_log2 <- train(log(Claim_Amount+1)~.,data=sample_train_down, method = "rpart", trControl = ctrl)
+model_caret_rpart_log2
+```
+Plot Tree Final Model
+```{r}
+fancyRpartPlot(model_caret_rpart_log2$finalModel)
+``` 
+ cp          RMSE      Rsquared  
+  0.02771978  2.108748  0.16091854
+  0.07123555  2.173347  0.10863841
+  0.07976012  2.265274  0.06105898
+
+```{r}
+prediction_caret_log2 <- predict(model_caret_rpart_log2,test_tree)
+sqrt(mean((test_tree_output-prediction_caret_log2)^2))
+```
+39.36998
+
+
+##Seleccionamos modelo con menor RSME
+
+```{r}
+test$predRpart <- prediction_caret_log
+write.csv(test,"testdf.csv",row.names = FALSE)
+```

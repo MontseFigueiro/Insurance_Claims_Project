@@ -1,0 +1,209 @@
+---
+title: "Support Vector Machine Regression"
+author: "Montse Figueiro & Aniana González"
+date: "25 de octubre de 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##REGRESIÓN CON SVM
+```{r}
+library(caret)
+library(e1071)
+library(kernlab)
+memory.limit(90000)
+```
+
+###Carga de Datos
+
+```{r}
+train <- read.csv("traindf.csv")
+test <- read.csv("testdf.csv")
+train_downsample <- read.csv("train_downSample.csv")
+```
+
+Quitamos Blind_Submodel, tiene más de 2700 niveles y se considera ID:
+```{r}
+cols <- c("Model_Year", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6","Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3", "NVVar4","Claim_Amount")
+train <- train[,cols]
+train_downsample <- train_downsample[,cols]
+```
+
+
+###Fichero Test para Validación
+
+```{r}
+cols <- c("Model_Year", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6","Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3", "NVVar4")
+test_svm <- test[,cols]
+test_svm_output <- test[,"Claim_Amount"]
+```
+
+
+##SVR REGRESIÓN CON DATOS DESEQUILIBRADOS
+
+Support Vector Machine es originalmente un método de clasificación, que encuentra puntos de soporte en los que mejor se separen las clases. Para un problema de regresión se llama Support Vector Regression.
+
+* Los mejores resultados se obtienen usando un "grid" sobre todos los parámetros.
+* Para ficheros largos como el nuestro los tiempos de ejecución pueden llegar a ser muy largos.
+* Normalizar los datos suele mejorar el modelo, SVM lo hace por defecto.
+* Kernel puede ser linear, sigmoide, polynomial y radial.
+
+
+Vamos a tomar una muestra de 5000 observaciones aleatorias, ya que el tiempo computacional del SVM podría ser eterno en el caso de un número elevado de observaciones, nos dará una idea para saber como se ajusta el modelo en los diferentes supuestos:
+
+```{r}
+sample_train <- train[sample(nrow(train),5000,replace=FALSE),]
+write.csv(sample_train,"sample_train_5000.csv",row.names = FALSE)
+```
+
+###SIN LOG TRANSFORMACIÓN
+
+No podemos controlar el número de Vectores que aplica SVR Regression en SVM-Type epsilon.
+
+Hemos aplicado los diferentes Kernel, linear y polynomial, finalmente vamos a realizar todas las predicciones con "radial" puesto que es uno de los que mejores resultados nos aportan al aplicar el logaritmo sobre la variable dependiente.
+
+```{r}
+model_svm1 <- svm(Claim_Amount~., sample_train,kernel="radial")
+summary(model_svm1)
+prediction1 <- predict(model_svm1,test_svm)
+sqrt(mean((test_svm_output-prediction1)^2))
+```
+RSME = 40.90066
+
+
+###CON LOG TRANSFORMACIÓN
+
+```{r}
+model_svm2 <- svm(log(Claim_Amount+1)~., sample_train,kernel="radial")
+summary(model_svm2)
+prediction2 <- predict(model_svm2,test_svm)
+sqrt(mean((test_svm_output-prediction2)^2))
+```
+RSME= 39.35993
+
+##K-FOLD CROSS-VALIDATION CON CARET PARA "Least Squares Support Vector Machine"
+
+###Sin LOG transformación
+```{r}
+ctrl <- trainControl(method="repeatedcv",repeats=5,number = 10)
+model_caret_svm <- train(Claim_Amount~.,data=sample_train, method = "svmRadial", trControl = ctrl, importance=TRUE)
+model_caret_svm
+```
+ C     RMSE      Rsquared  
+  0.25  108.0015  0.03117261
+  0.50  107.8672  0.02975896
+  1.00  107.7258  0.02810526
+
+Variables importantes
+```{r}
+varImp(model_caret_svm)
+```
+
+```{r}
+prediction_caret <- predict(model_caret_svm,test_svm)
+sqrt(mean((test_svm_output-prediction_caret)^2))
+```
+RSME=41.81438
+
+###Con LOG transformación
+
+```{r}
+ctrl <- trainControl(method="repeatedcv",repeats=5,number = 10)
+model_caret_svm_log <- train(log(Claim_Amount+1)~.,data=sample_train, method = "svmRadial", trControl = ctrl)
+model_caret_svm_log
+```
+
+ C     RMSE      Rsquared 
+  0.25  1.264580  0.1634065
+  0.50  1.250895  0.1662084
+  1.00  1.235304  0.1694657
+
+```{r}
+prediction_caret_log <- predict(model_caret_svm_log,test_svm)
+sqrt(mean((test_svm_output-prediction_caret_log)^2))
+```
+39.35668
+
+##REGRESION SVR CON DATOS EQUILIBRADOS
+
+Siempre utilizamos las mismas 5000 observaciones aleatorias.
+
+```{r}
+sample_train_down <- train_downsample[sample(nrow(train_downsample),5000,replace=FALSE),]
+write.csv(sample_train_down,"sample_train_down.csv",row.names = FALSE)
+```
+
+Vamos a partir del fichero downSample como para el resto de nuestros modelos para ajustar el modelo y comprobar con la predicción sobre el fichero test cual es el RMSE.
+
+###SIN LOG TRANSFORMACIÓN
+
+```{r}
+model_svm3 <- svm(Claim_Amount~., sample_train_down,kernel="radial")
+summary(model_svm3)
+prediction3 <- predict(model_svm3,test_svm)
+sqrt(mean((test_svm_output-prediction3)^2))
+```
+RSME =  61.23
+
+
+###CON LOG TRANSFORMACIÓN
+
+```{r}
+model_svm4 <- svm(log(Claim_Amount+1)~., sample_train_down,kernel="radial")
+summary(model_svm4)
+prediction4 <- predict(model_svm4,test_svm)
+sqrt(mean((test_svm_output-prediction4)^2))
+```
+RSME = 39.38073
+
+
+##K-FOLD CROSS-VALIDATION CON CARET PARA "Least Squares Support Vector Machine" en Datos Equilibrados
+
+###Sin LOG transformación
+```{r}
+ctrl <- trainControl(method="repeatedcv",repeats=5,number = 10)
+model_caret_svm2 <- train(Claim_Amount~.,data=sample_train_down, method = "svmRadial", trControl = ctrl)
+model_caret_svm2
+```
+
+ C     RMSE      Rsquared  
+  0.25  289.5053  0.05487481
+  0.50  289.0325  0.04907009
+  1.00  288.4932  0.04252835
+
+```{r}
+prediction_caret2 <- predict(model_caret_svm2,test_svm)
+sqrt(mean((test_svm_output-prediction_caret2)^2))
+```
+67.89893
+
+###Con LOG transformación
+
+```{r}
+ctrl <- trainControl(method="repeatedcv",repeats=5,number = 10)
+model_caret_svm_log2 <- train(log(Claim_Amount+1)~.,data=sample_train_down, method = "svmRadial", trControl = ctrl)
+model_caret_svm_log2
+```
+C     RMSE      Rsquared 
+  0.25  1.996690  0.2913780
+  0.50  1.986080  0.2956255
+  1.00  1.981619  0.2959949
+
+```{r}
+prediction_caret_log2 <- predict(model_caret_svm_log2,test_svm)
+sqrt(mean((test_svm_output-prediction_caret_log2)^2))
+```
+39.38617
+
+
+##Seleccionamos modelo con menor RSME
+
+Prediction2 con log transformación y sin equilibrar.
+
+```{r}
+test$predSVM <- prediction2
+write.csv(test,"testdf.csv",row.names = FALSE)
+```
