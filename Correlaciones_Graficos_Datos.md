@@ -32,7 +32,7 @@ Plot:
 [](D:\master\data\Montse\carinsurance\Graficos\Correlaccion_variables.jpeg)
 
 Los colores oscuros representan mayor correlación, como podemos
-comprobar
+comprobar hay variables numéricas altamente correlacionadas entre ellas.
 
 ### Correlaciones Individuales
 
@@ -146,7 +146,7 @@ La correlacción entre Claim\_Amount y Var6
     ##     .External(C_devoff, as.integer(which))
     ##     dev.cur()
     ## }
-    ## <bytecode: 0x0000000008b36d18>
+    ## <bytecode: 0x0000000008b382f0>
     ## <environment: namespace:grDevices>
 
 La correlacción entre Claim\_Amount y Var7
@@ -228,3 +228,22 @@ La correlacción entre Claim\_Amount y NVVar4
 
     ## png 
     ##   2
+
+Distribución de la Variable Dependiente
+---------------------------------------
+
+Observaciones con importe diferente de 0:
+
+    positive <- train[train$Claim_Amount!=0,]
+    hist(positive$Claim_Amount)
+
+![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-18-1.png)
+
+Aplicando Transformación logarítmica:
+
+    hist(log(positive$Claim_Amount+1))
+
+![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-19-1.png)
+
+Los resultados que hemos obtenido en nuestros modelos se han ajustado
+mejor cuando hemos aplicado el logaritmo sobre la variable dependiente.
