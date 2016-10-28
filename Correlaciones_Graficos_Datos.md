@@ -21,7 +21,7 @@ Plot Correlación entre variables:
     M <- cor(train_cor)
     corrplot.mixed(M)
 
-![](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Correlaccion_variables.jpeg)
+![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-3-1.png)
 
 Los colores oscuros representan mayor correlación, como podemos
 comprobar hay variables numéricas altamente correlacionadas entre ellas.
@@ -38,7 +38,7 @@ La correlacción entre Claim\_Amount y Model\_year7
 
     plot(train$Model_Year,train$Claim_Amount)
 
-![](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Correlaccion_ModelYear.jpeg)
+![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-4-1.png)
 La correlacción entre Claim\_Amount y OrdCat
 
     cor(train$OrdCat,train$Claim_Amount)
@@ -47,7 +47,7 @@ La correlacción entre Claim\_Amount y OrdCat
 
     plot(train$OrdCat,train$Claim_Amount)
 
-![](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Correlaccion_OrdCat.jpeg)
+![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-5-1.png)
 
 La correlacción entre Claim\_Amount y Var1
 
@@ -57,7 +57,7 @@ La correlacción entre Claim\_Amount y Var1
 
     plot(train$Var1,train$Claim_Amount)
 
-![](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Correlaccion_Var1.jpeg)
+![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-6-1.png)
 La correlacción entre Claim\_Amount y Var2
 
     cor(train$Var2,train$Claim_Amount)
@@ -66,7 +66,7 @@ La correlacción entre Claim\_Amount y Var2
 
     plot(train$Var2,train$Claim_Amount)
 
-![](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Correlaccion_Var2.jpeg)
+![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-7-1.png)
 La correlacción entre Claim\_Amount y Var3
 
     cor(train$Var3,train$Claim_Amount)
@@ -75,7 +75,7 @@ La correlacción entre Claim\_Amount y Var3
 
     plot(train$Var3,train$Claim_Amount)
 
-![](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Correlaccion_Var3.jpeg)
+![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-8-1.png)
 La correlacción entre Claim\_Amount y Var4
 
     cor(train$Var4,train$Claim_Amount)
@@ -84,7 +84,7 @@ La correlacción entre Claim\_Amount y Var4
 
     plot(train$Var4,train$Claim_Amount)
 
-![](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Correlaccion_Var4.jpeg)
+![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-9-1.png)
 La correlacción entre Claim\_Amount y Var5
 
     cor(train$Var5,train$Claim_Amount)
@@ -93,7 +93,7 @@ La correlacción entre Claim\_Amount y Var5
 
     plot(train$Var5,train$Claim_Amount)
 
-![](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Correlaccion_Var5.jpeg)
+![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-10-1.png)
 La correlacción entre Claim\_Amount y Var6
 
     cor(train$Var6,train$Claim_Amount)
@@ -102,7 +102,7 @@ La correlacción entre Claim\_Amount y Var6
 
     plot(train$Var6,train$Claim_Amount)
 
-![](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Correlaccion_Var6.jpeg)
+![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-11-1.png)
 La correlacción entre Claim\_Amount y Var7
 
     cor(train$Var7,train$Claim_Amount)
@@ -111,7 +111,7 @@ La correlacción entre Claim\_Amount y Var7
 
     plot(train$Var7,train$Claim_Amount)
 
-![](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Correlaccion_Var7.jpeg)
+![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-12-1.png)
 La correlacción entre Claim\_Amount y Var8
 
     cor(train$Var8,train$Claim_Amount)
@@ -120,7 +120,7 @@ La correlacción entre Claim\_Amount y Var8
 
     plot(train$Var8,train$Claim_Amount)
 
-![](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Correlaccion_Var8.jpeg)
+![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-13-1.png)
 
 ### Variables - Características de la póliza
 
@@ -132,7 +132,7 @@ La correlacción entre Claim\_Amount y NVVar1
 
     plot(train$NVVar1,train$Claim_Amount)
 
-![](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Correlaccion_NVVAR1.jpeg)
+![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-14-1.png)
 La correlacción entre Claim\_Amount y NVVar2
 
     cor(train$NVVar2,train$Claim_Amount)
@@ -141,7 +141,7 @@ La correlacción entre Claim\_Amount y NVVar2
 
     plot(train$NVVar2,train$Claim_Amount)
 
-![](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Correlaccion_NVVAR2.jpeg)
+![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-15-1.png)
 La correlacción entre Claim\_Amount y NVVar3
 
     cor(train$NVVar3,train$Claim_Amount)
@@ -150,7 +150,7 @@ La correlacción entre Claim\_Amount y NVVar3
 
     plot(train$NVVar3,train$Claim_Amount)
 
-![](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Correlaccion_NVVAR3.jpeg)
+![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-16-1.png)
 La correlacción entre Claim\_Amount y NVVar4
 
     cor(train$NVVar4,train$Claim_Amount)
@@ -159,7 +159,7 @@ La correlacción entre Claim\_Amount y NVVar4
 
     plot(train$NVVar4,train$Claim_Amount)
 
-![](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Correlaccion_NVVAR4.jpeg)
+![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-17-1.png)
 
 Distribución de la Variable Dependiente
 ---------------------------------------
@@ -169,13 +169,13 @@ Observaciones con importe diferente de 0:
     positive <- train[train$Claim_Amount!=0,]
     hist(positive$Claim_Amount,main="Histograma Claim Amount")
 
-![](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/HistClaimAmount.png)
+![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-18-1.png)
 
 Aplicando Transformación logarítmica:
 
     hist(log(positive$Claim_Amount+1),main="Histograma Log Claim Amount")
 
-![](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/HistClaimLog.png)
+![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-19-1.png)
 
 Los resultados que hemos obtenido en nuestros modelos se han ajustado
 mejor cuando hemos aplicado el logaritmo sobre la variable dependiente.
