@@ -13,9 +13,6 @@ dependiente "Claim\_Amount" y las diferentes variables continuas.
 Selección de variables continuas:
 
     library(corrplot)
-
-    ## Warning: package 'corrplot' was built under R version 3.3.1
-
     cols <- c("Model_Year","OrdCat","Var1","Var2","Var3","Var4","Var5","Var6","Var7","Var8","NVVar1","NVVar2","NVVar3","NVVar4")
     train_cor <- train[,cols]
 
