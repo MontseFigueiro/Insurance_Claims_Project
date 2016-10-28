@@ -1,6 +1,6 @@
 ---
 title: "Reading Data"
-author: "Montse Figueiro & Aniana Gonz·lez"
+author: "Montse Figueiro & Aniana Gonz√°lez"
 date: "13 de octubre de 2016"
 output: pdf_document
 ---
@@ -16,46 +16,46 @@ knitr::opts_chunk$set(echo = TRUE)
 
 [claim_prediction_Challenge](https://www.kaggle.com/c/ClaimPredictionChallenge)
 
-###InformaciÛn aportada por la empresa aseguradora
+###Informaci√≥n aportada por la empresa aseguradora
 
 El fichero contiene los siguientes campos:
 
-* Cada observaciÛn contiene la informaciÛn anual sobre el seguro de un vehÌculo.  
-* La variable "Claim_Amount" ha sido ajustada para tener en cuenta los efectos de las caracterÌsticas no correspondientes al vehÌculo, pero pueden tener interacciones interesantes con las variables del vehÌculo.
-* "Calendar_Year" es el aÒo en el que el vehÌculo fuÈ asegurado.
-* "Household_ID" es la identificaciÛn del hogar, en un hogar puede haber m·s de un vehÌculo asegurado.
-* "Vehicle" es el n˙mero que identifica al vehÌculo, pero el mismo vehÌculo no tiene porque tener el mismo n˙mero en los diferentes aÒos.
-* Tenemos para identifiar el vehÌculo Model_Year, Blind_Make (manufacturer), Blind_Model, Blind_Submodel.
-* El resto de columnas contienen caracterÌsticas del vehÌculo asÌ como otras caracterÌsticas asociadas a la poliza.
-* Las variables numÈricas han sido normalizadas, tienen media 0 y desviaciÛn standar 1.
+* Cada observaci√≥n contiene la informaci√≥n anual sobre el seguro de un veh√≠culo.  
+* La variable "Claim_Amount" ha sido ajustada para tener en cuenta los efectos de las caracter√≠sticas no correspondientes al veh√≠culo, pero pueden tener interacciones interesantes con las variables del veh√≠culo.
+* "Calendar_Year" es el a√±o en el que el veh√≠culo fu√© asegurado.
+* "Household_ID" es la identificaci√≥n del hogar, en un hogar puede haber m√°s de un veh√≠culo asegurado.
+* "Vehicle" es el n√∫mero que identifica al veh√≠culo, pero el mismo veh√≠culo no tiene porque tener el mismo n√∫mero en los diferentes a√±os.
+* Tenemos para identifiar el veh√≠culo Model_Year, Blind_Make (manufacturer), Blind_Model, Blind_Submodel.
+* El resto de columnas contienen caracter√≠sticas del veh√≠culo as√≠ como otras caracter√≠sticas asociadas a la poliza.
+* Las variables num√©ricas han sido normalizadas, tienen media 0 y desviaci√≥n standar 1.
 * Tenemos dos datasets:
     + Training de 2005-2007 para construir el modelo.
-    + Test de 2008-2009 sobre el que se tendrÌan que realizar las predicciones.(no lo vamos a utilizar)
+    + Test de 2008-2009 sobre el que se tendr√≠an que realizar las predicciones.(no lo vamos a utilizar)
     
 
 ###Objetivo del Estudio
 
-####Primer Objetivo: ClasificaciÛn
+####Primer Objetivo: Clasificaci√≥n
 
-Clasificar que vehÌculos tendr·n siniestro con daÒo corporal en funciÛn de sus caracterÌsticas.
+Clasificar que veh√≠culos tendr√°n siniestro con da√±o corporal en funci√≥n de sus caracter√≠sticas.
 
     + Naive Bayes
     + Trees (rpart)
 
 
-####Segundo Objetivo:RegressiÛn
+####Segundo Objetivo:Regressi√≥n
 
-Es conseguir predecir en funciÛn de las caracterÌsticas del vehÌculo los pagos por daÒo corporal ocasionados anualmente por cada vehÌculo.
+Es conseguir predecir en funci√≥n de las caracter√≠sticas del veh√≠culo los pagos por da√±o corporal ocasionados anualmente por cada veh√≠culo.
 
-    + Random Forest RegresiÛn.
-    + PrevisiÛn Datos numÈricos - MÈtodos de RegresiÛn
+    + Random Forest Regresi√≥n.
+    + Previsi√≥n Datos num√©ricos - M√©todos de Regresi√≥n
         + GLM
         + LM (PCA)
         + SVM
         + GBM
 
 
-**En nuestro estudio solo vamos a utilizar el fichero Training (Desglosado en dos Train/Test) puesto que solo la empresa aseguradora conoce los datos reales para los aÒos 2008-2009 y por lo tanto no podemos hacer la validaciÛn con el fichero Test.**
+**En nuestro estudio solo vamos a utilizar el fichero Training (Desglosado en dos Train/Test) puesto que solo la empresa aseguradora conoce los datos reales para los a√±os 2008-2009 y por lo tanto no podemos hacer la validaci√≥n con el fichero Test.**
 
 
 ##Code Book Variables
@@ -84,12 +84,12 @@ memory.limit(size=60000)
 class(train)
 ```
 
-Pasamos train a Data Frame, debido a que al leer el fichero con la funciÛn "fread" Èste tiene dos clases. 
+Pasamos train a Data Frame, debido a que al leer el fichero con la funci√≥n "fread" √©ste tiene dos clases. 
 ```{r}
 train <- as.data.frame(train)
 ```
 
-Las categÛricas pasan a Factor:
+Las categ√≥ricas pasan a Factor:
 ```{r}
 library(plyr)
 train[6:20] <- lapply(train[6:20], as.factor) 
@@ -97,32 +97,34 @@ train$NVCat <- as.factor(train$NVCat)
 train$OrdCat <- as.factor(train$OrdCat)
 ```
 
-##VisualizaciÛn Datos Generales
+##Visualizaci√≥n Datos Generales
 
-ComprobaciÛn observaciones duplicadas:
+Comprobaci√≥n observaciones duplicadas:
 ```{r}
 anyDuplicated(train)
 ```
 
-Vemos que salen 0 duplicados aunque tenemos el mismo vehÌculo asegurado en diferentes aÒos, esto es porque hay tres variables categÛricas que cambian cada aÒo aunque se trate del mismo coche (Cat10,Cat11 y Cat12)
+Vemos que salen 0 duplicados aunque tenemos el mismo veh√≠culo asegurado en diferentes a√±os, esto es porque hay tres variables categ√≥ricas que cambian cada a√±o aunque se trate del mismo coche (Cat10,Cat11 y Cat12)
 
 
-N˙mero de observaciones sin daÒo y con daÒo corporal:
+N√∫mero de observaciones sin da√±o y con da√±o corporal:
 ```{r}
 sum(train$Claim_Amount==0)
 sum(train$Claim_Amount!=0)
 prop_siniestro <- c((sum(train$Claim_Amount==0)/nrow(train)),(sum(train$Claim_Amount!=0)/nrow(train)))
 prop_siniestro
 ```
-*El 99,27% de las observaciones no han sufrido daÒo corporal.*
+*El 99,27% de las observaciones no han sufrido da√±o corporal.*
+
+Tabla:
 
 | |Num.Observaciones|Porcentaje|
 |--|------|-----|
-|Claim_Amount=0|13088685|0.99274|
-|Claim_Amount!=0|0.00725|
+|No Claim|13088685|0.99274|
+|Claim| 95605|0.00725|
 
 
-N˙mero de observaciones desglosadas por aÒo y siniestralidad:
+N√∫mero de observaciones desglosadas por a√±o y siniestralidad:
 ```{r}
 Obs_polizas <- with(train, aggregate(Claim_Amount ~ Calendar_Year, FUN =  function(x) c( Total_Obs = length(x) )))
 Claim_positive <- train[train$Claim_Amount!=0,]
@@ -132,51 +134,51 @@ colnames(d) <- c("Calendar_Year","Obs.Totales","Obs.Claim")
 d$Porcentaje_Claim <- round((d$Obs.Claim/d$Obs.Totales)*100,2)
 ```
 
-**Desglose Observaciones con DaÒos Corporal por aÒo**
+**Desglose Observaciones con Da√±os Corporal por a√±o**
 
-|AÒo |Num. Observaciones|Observaciones con Claim|Porcentaje Obs.Claim|
+|A√±o |Num. Observaciones|Observaciones con Claim|Porcentaje Obs.Claim|
 |---|------|-----|---|
 |2005|4025672|30148|0.007488|
 |2006|4447730|31690|0.007124|
 |2007|4710888|33767|0.007167|
 | TOTAL|13184290|95605||
 
-N˙mero de Casas aseguradas: 
+N√∫mero de Casas aseguradas: 
 ```{r}
 House_policies <- as.data.frame(unique(train$Household_ID))
 dim(House_policies)
 ```
-*4.309.042 Casas diferentes con 1 o m·s vehÌculos por Casa*
+*4.309.042 Casas diferentes con 1 o m√°s veh√≠culos por Casa*
 
-N˙mero de VehÌculos asegurados:
+N√∫mero de Veh√≠culos asegurados:
 ```{r}
 Cars_policies <- aggregate(Claim_Amount~Household_ID+Blind_Submodel+Model_Year,train,FUN = length)
 Cars_policies <- Cars_policies[order(-Cars_policies$Claim_Amount),]
 dim(Cars_policies)
 ```
-*El mismo vehÌculo puede estar asegurado en 2005, 2006 y 2007, tenemos 7.366.649 de vehÌculos diferente.*
+*El mismo veh√≠culo puede estar asegurado en 2005, 2006 y 2007, tenemos 7.366.649 de veh√≠culos diferente.*
 
-N˙mero de Modelos existentes:
+N√∫mero de Modelos existentes:
 ```{r}
 Cars_Models <- aggregate(Claim_Amount~Blind_Submodel+Model_Year,train,sum)
 dim(Cars_Models)
 ```
-*Tenemos 13315 modelos de vehÌculos diferentes, pero el mismo vehÌculo puede tener caracterÌsticas diferentes seg˙n la casa, ya que puede variar el color, la potencia....*
+*Tenemos 13315 modelos de veh√≠culos diferentes, pero el mismo veh√≠culo puede tener caracter√≠sticas diferentes seg√∫n la casa, ya que puede variar el color, la potencia....*
 
 
-##VisualizaciÛn de Missing Values
+##Visualizaci√≥n de Missing Values
 
 Tratamos a los ? como NA:
 ```{r}
 train[train=="?"] <- NA
 ```
 
-Contamos los casos completos (no tienen ning˙n NA) y los casos incompletos (tienen alg˙n NA)
+Contamos los casos completos (no tienen ning√∫n NA) y los casos incompletos (tienen alg√∫n NA)
 ```{r}
 sum(complete.cases(train))
 sum(!complete.cases(train))
 ```
-*Tenemos 9.457.989 observaciones con alg˙n NA y 3.726.301 de casos completos.*
+*Tenemos 9.457.989 observaciones con alg√∫n NA y 3.726.301 de casos completos.*
 
 Carga de paquete:
 ```{r}
@@ -202,7 +204,7 @@ text(seq(1.5,end_point,by=2), par("usr")[3]-0.25, srt = 60, adj= 1, xpd = TRUE,l
 Tenemos en total 23.438.318 de Missing Values, en el campo Porcentaje se indica el tanto por ciento de NA's sobre el total de observaciones de esa variable.
 
 
-|Variable|N˙mero de NA|Porcentaje|
+|Variable|N√∫mero de NA|Porcentaje|
 |--------|------------|----------|
 |Blind_Make|        8431  |     0.06|
 |Blind_Model|       8431  |     0.06|
@@ -219,33 +221,33 @@ Tenemos en total 23.438.318 de Missing Values, en el campo Porcentaje se indica 
 |Cat11       |     31469  |     0.24|
 |OrdCat       |     7546  |     0.06|
 
-Como hemos comprobado en nuestra tabla "TablaNAs_Positive" solamente las variables categÛricas tienen Missing Values.
+Como hemos comprobado en nuestra tabla "TablaNAs_Positive" solamente las variables categ√≥ricas tienen Missing Values.
 
 
-VisualizaciÛn con VIM de las variables con NA:
+Visualizaci√≥n con VIM de las variables con NA:
 
 Seleccionamos las columnas de train que solo tienen NA's:
 ```{r}
 cols <- rownames(TablaNas_Positive)
 cols_with_NA <- train[,cols]
 ```
-VisualizaciÛn con VIM de Na's
+Visualizaci√≥n con VIM de Na's
 ```{r}
 jpeg("Missing_Pattern.jpeg")
 train_aggr = aggr(cols_with_NA, numbers=TRUE, sortVars=TRUE, labels=names(cols_with_NA), cex.axis=.7, gap=3, ylab=c("Proportion of missingness","Missingness Pattern"))
 dev.off()
 ```
 
-![MissingValues](D:\master\data\Montse\carinsurance\Missing_Pattern.jpeg)
+![MissingValues](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Missing_Pattern_with_claim.jpeg)
 
 
 ##Problemas que nos encontramos en nuestra base de datos:
 
-* N˙mero elevado de Missing Values
+* N√∫mero elevado de Missing Values
 * Multicolinealidad 
 * Unbalanced Data. El 99,274% de las observaciones tienen Claim_Amount = 0.
-    * Under-Sampling: Eliminamos observaciones = 0, solo vale para ahorrar tiempo, perdemos informaciÛn.
-    * Over-Sampling: Implica hacer copias de la Clase mÌnima causando overfitting.
-    * Este no suele ser un problema para la regressiÛn logÌstica.
-    * MÈtodos de penalizaciÛn como Ridge o Lasso funcionan bien en regressiones binomial.
+    * Under-Sampling: Eliminamos observaciones = 0, solo vale para ahorrar tiempo, perdemos informaci√≥n.
+    * Over-Sampling: Implica hacer copias de la Clase m√≠nima causando overfitting.
+    * Este no suele ser un problema para la regressi√≥n log√≠stica.
+    * M√©todos de penalizaci√≥n como Ridge o Lasso funcionan bien en regressiones binomial.
     * logit and probit aproximan el 0 al mismo ratio que el 1.
