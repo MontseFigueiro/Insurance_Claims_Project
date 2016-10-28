@@ -1,10 +1,8 @@
-COMPARACIÓN MODELOS
--------------------
+### COMPARACIÓN MODELOS
 
-*MODELOS DE CLASIFICACIÓN*
---------------------------
+### MODELOS DE CLASIFICACIÓN
 
-### MODELO DE CLASIFICACIÓN CON GLM
+#### MODELO DE CLASIFICACIÓN CON GLM
 
 Los resultados obtenidos para la clasificación con GLM:
 
@@ -60,7 +58,7 @@ aumentará porque el número de TRUE POSITIVE aumenta pero también lo hace
 el número de False Positive que es muy elevado, esto sucede porque
 clasifica con una probabilidad aproximadamente del 50% para cada clase.
 
-### MODELO DE CLASIFICACIÓN CON RANDOM FOREST
+#### MODELO DE CLASIFICACIÓN CON RANDOM FOREST
 
 Hemos realizado la clasificación tanto con el paquete randomForest como
 el paquete Caret con k-folder. Los resultados para los dos ficheros, el
@@ -155,8 +153,7 @@ seleccionar como clase 1 aquellos que tienen una probabilidad mayor del
 95% nos da 2.699.415 de observaciones como clase 1 erroneamente (Falsos
 Positivos)
 
-*MODELOS DE REGRESIÓN*
-----------------------
+### MODELOS DE REGRESIÓN
 
 Pasos realizados:
 
@@ -168,7 +165,7 @@ Pasos realizados:
 -   Predicción Claim\_Amount fichero Test
 -   Cálculo RSME de las predicciones del fichero Test
 
-#### MODELO DE REGRESIÓN LINEAL
+##### MODELO DE REGRESIÓN LINEAL
 
 Resultados validados con el fichero Test con 3.295.567 observaciones (El
 entrenamiento se ha hecho por triplicado: train entero,train agregado y
