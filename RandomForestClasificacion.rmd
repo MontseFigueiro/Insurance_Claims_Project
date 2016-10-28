@@ -1,0 +1,328 @@
+---
+title: "Clasificación con SVM"
+author: "Montse Figueiro & Aniana González"
+date: "28 de octubre de 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##CLASIFICACIÓN CON RANDOM FOREST
+```{r}
+library(caret)
+library(randomForest)
+memory.limit(90000)
+```
+
+###Carga de Datos
+
+Utilizamos las mismas 5000 observaciones que habíamos utilizado para el resto de los modelos y así poder realizar la comparativa final.
+
+```{r}
+sample_train <- read.csv("sample_train_5000.csv")
+sample_train$clasification <- as.factor(ifelse(sample_train$Claim_Amount!=0,"1","0"))
+sample_train_down <- read.csv("sample_train_down.csv")
+sample_train_down$clasification <- as.factor(ifelse(sample_train_down$Claim_Amount!=0,"1","0"))
+test <- read.csv("testdf.csv")
+test$clasification <- as.factor(ifelse(test$Claim_Amount!=0,"1","0"))
+```
+
+```{r}
+cols <- c("Model_Year", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6","Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3", "NVVar4","clasification")
+sample_train <- sample_train[,cols]
+sample_train_down <- sample_train_down[,cols]
+```
+###Fichero Test para Validación
+
+```{r}
+cols <- c("Model_Year", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6","Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3", "NVVar4")
+test_rf <- test[,cols]
+test_rf_output <- test[,"clasification"]
+```
+
+
+##RANDOM FOREST CLASIFICACIÓN CON DATOS DESEQUILIBRADOS
+
+Random Forest es uno de los algoritmos de aprendizaje más certeros que hay disponible basado en árboles. Es difícil de interpretar. 
+
+```{r}
+model_rf <- randomForest(clasification ~ ., data=sample_train, mtry=3,importance=TRUE, na.action=na.omit)
+varImp(model_rf)
+```
+
+```{r}
+prediction <- predict(model_rf,test_rf)
+prob <- predict(model_rf,test_rf,type="prob")
+table(prediction,test_rf_output)
+```
+
+
+ test_rf_output
+prediction       0       1
+         0 2402490   18084
+         1  869254    5739
+         
+         Accuracy:
+True Positive+ True Negative / Total Observations
+```{r}
+((table(prediction,test_rf_output)[4])+(table(prediction,test_rf_output)[1]))/(nrow(test_rf))
+```
+*0.730748*
+
+Precisión:
+True Positives / (True Positives + False Positives).
+```{r}
+((table(prediction,test_rf_output)[4]))/((table(prediction,test_rf_output)[4])+(table(prediction,test_rf_output)[3]))
+```
+*0.2409016*
+
+Recall:
+True Positives / (True Positives + False Negatives).
+```{r}
+((table(prediction,test_rf_output)[4]))/((table(prediction,test_rf_output)[4])+(table(prediction,test_rf_output)[2]))
+```
+*0.00655891*
+
+Calibración probabilidad
+
+```{r}
+prob1 <- prob[,2]
+prob_95 <- as.factor(ifelse(prob1 >0.95,"1","0"))
+table(prob_95,test_rf_output)
+```
+
+      test_rf_output
+prob_95       0       1
+      0 3270002   23804
+      1    1742      19
+
+```{r}
+#Accuracy:True Positive+ True Negative / Total Observations
+((table(prob_95,test_rf_output)[4])+(table(prob_95,test_rf_output)[1]))/(nrow(test_rf))
+#Precisión:True Positives / (True Positives + False Positives).
+((table(prob_95,test_rf_output)[4]))/((table(prob_95,test_rf_output)[4])+(table(prob_95,test_rf_output)[3]))
+#Recall:True Positives / (True Positives + False Negatives).
+((table(prob_95,test_rf_output)[4]))/((table(prob_95,test_rf_output)[4])+(table(prob_95,test_rf_output)[2]))
+```
+0.9922484
+0.0007975486
+0.01078932
+
+##K-FOLD CROSS-VALIDATION CON CARET 
+
+```{r}
+ctrl <- trainControl(method="repeatedcv", number=10, repeats=5)
+model_caret_rf <- train(clasification~.,data=sample_train, method = "rf", trControl = ctrl)
+model_caret_rf
+```
+
+mtry  Accuracy   Kappa    
+   2    0.8982003  0.0000000
+  30    0.9076400  0.3514852
+  58    0.9050793  0.3478271
+  
+```{r}
+prediction_caret <- predict(model_caret_rf,test_rf)
+prob_caret <- predict(model_caret_rf,test_rf,type="prob")
+table(prediction_caret,test_rf_output)
+```
+
+ test_rf_output
+prediction_caret       0       1
+               0 2116654   16447
+               1 1155090    7376
+               
+               
+                        Accuracy:
+True Positive+ True Negative / Total Observations
+```{r}
+((table(prediction_caret,test_rf_output)[4])+(table(prediction_caret,test_rf_output)[1]))/(nrow(test_rf))
+```
+*0.6445112*
+
+Precisión:
+True Positives / (True Positives + False Positives).
+```{r}
+((table(prediction_caret,test_rf_output)[4]))/((table(prediction_caret,test_rf_output)[4])+(table(prediction_caret,test_rf_output)[3]))
+```
+*0.3096168*
+
+Recall:
+True Positives / (True Positives + False Negatives).
+```{r}
+((table(prediction_caret,test_rf_output)[4]))/((table(prediction_caret,test_rf_output)[4])+(table(prediction_caret,test_rf_output)[2]))
+```
+*0.006345132*
+
+##CLASIFICACIÓN CON DATOS EQUILIBRADOS
+
+```{r}
+model_rf2 <- randomForest(clasification~., data=sample_train_down,mtry=3,importance=TRUE, na.action=na.omit)
+varImp(model_rf2)
+prediction2 <- predict(model_rf2,test_rf)
+prob2 <- predict(model_rf2,test_rf,type="prob")
+table(prediction2,test_rf_output)
+```
+
+ test_rf_output
+prediction2       0       1
+          0  622511    4908
+          1 2649233   18915
+
+                   Accuracy:
+True Positive+ True Negative / Total Observations
+```{r}
+((table(prediction2,test_rf_output)[4])+(table(prediction2,test_rf_output)[1]))/(nrow(test_rf))
+```
+*0.194633*
+
+Precisión:
+True Positives / (True Positives + False Positives).
+```{r}
+((table(prediction2,test_rf_output)[4]))/((table(prediction2,test_rf_output)[4])+(table(prediction2,test_rf_output)[3]))
+```
+*0.7939806*
+
+Recall:
+True Positives / (True Positives + False Negatives).
+```{r}
+((table(prediction2,test_rf_output)[4]))/((table(prediction2,test_rf_output)[4])+(table(prediction2,test_rf_output)[2]))
+```
+*0.007089187*
+
+##K-FOLD CROSS-VALIDATION CON CARET en Datos Equilibrados
+
+```{r}
+ctrl <- trainControl(method="repeatedcv", number=10, repeats=5)
+model_caret_rf2 <- train(clasification~.,data=sample_train_down, method = "rf", trControl = ctrl)
+model_caret_rf2
+```
+
+mtry  Accuracy   Kappa    
+   2    0.7898770  0.5798803
+  30    0.8336767  0.6671942
+  58    0.8257160  0.6512819
+
+```{r}
+prediction_caret2 <- predict(model_caret_rf2,test_rf)
+prob_caret2 <- predict(model_caret_rf2,test_rf,type="prob")
+table(prediction_caret2,test_rf_output)
+```
+
+                test_rf_output
+prediction_caret2       0       1
+                0  570276    4359
+                1 2701468   19464
+
+                  Accuracy:
+True Positive+ True Negative / Total Observations
+```{r}
+((table(prediction_caret2,test_rf_output)[4])+(table(prediction_caret2,test_rf_output)[1]))/(nrow(test_rf))
+```
+*0.1789495*
+
+Precisión:
+True Positives / (True Positives + False Positives).
+```{r}
+((table(prediction_caret2,test_rf_output)[4]))/((table(prediction_caret2,test_rf_output)[4])+(table(prediction_caret2,test_rf_output)[3]))
+```
+*0.8170256*
+
+Recall:
+True Positives / (True Positives + False Negatives).
+```{r}
+((table(prediction_caret2,test_rf_output)[4]))/((table(prediction_caret2,test_rf_output)[4])+(table(prediction_caret2,test_rf_output)[2]))
+```
+*0.007153431*
+
+##CALIBRACIÓN DE LAS PROBABILIDADES
+
+###Calibración de probabilidades
+
+El modelo que más precisión nos da es el del fichero equilibrado, pero porque tiende a clasificar como clase minoritaria.
+
+Si cogemos que la probabilidad de corte para que sea clasificación=1 (tiene daño corporal) que la probabilidad sea > que 0.6:
+```{r} 
+pred_60 <- as.factor(ifelse(prob_caret2$`1`>0.6,"1","0"))
+table(pred_60,test_rf_output)
+```
+
+|pred_60|       0 |      1|
+    |---|-----|-----|
+     | 0  |785995 |   6000|
+    |  1| 2485749 |  17823|
+      
+      
+```{r}
+#Accuracy:True Positive+ True Negative / Total Observations
+((table(pred_60,test_rf_output)[4])+(table(pred_60,test_rf_output)[1]))/(nrow(test_rf))
+#Precisión:True Positives / (True Positives + False Positives).
+((table(pred_60,test_rf_output)[4]))/((table(pred_60,test_rf_output)[4])+(table(pred_60,test_rf_output)[3]))
+#Recall:True Positives / (True Positives + False Negatives).
+((table(pred_60,test_rf_output)[4]))/((table(pred_60,test_rf_output)[4])+(table(pred_60,test_rf_output)[2]))
+```
+0.2439089
+0.7481426
+0.0071190
+
+Si cogemos que la probabilidad de corte para que sea clasificación=1 (tiene daño corporal) que la probabilidad sea > que 0.7:
+```{r}
+pred_70 <- as.factor(ifelse(prob_caret2$`1`>0.7,"1","0"))
+table(pred_70,test_rf_output)
+```
+
+
+|pred_70|       0 |      1|
+      |---|-----|-----|
+      |0 |1031606   | 7972|
+      |1| 2240138 |  15851|
+
+```{r}
+#Accuracy:True Positive+ True Negative / Total Observations
+((table(pred_70,test_rf_output)[4])+(table(pred_70,test_rf_output)[1]))/(nrow(test_rf))
+#Precisión:True Positives / (True Positives + False Positives).
+((table(pred_70,test_rf_output)[4]))/((table(pred_70,test_rf_output)[4])+(table(pred_70,test_rf_output)[3]))
+#Recall:True Positives / (True Positives + False Negatives).
+((table(pred_70,test_rf_output)[4]))/((table(pred_70,test_rf_output)[4])+(table(pred_70,test_rf_output)[2]))
+```
+0.3178382
+0.6653654
+0.0070261
+
+Si cogemos que la probabilidad de corte para que sea clasificación=1 (tiene daño corporal) que la probabilidad sea > que 0.95:
+```{r}
+pred_95 <- as.factor(ifelse(prob_caret2$`1`>0.5,"1","0"))
+table(pred_95,test_rf_output)
+```
+
+ test_rf_output
+pred_95       0       1
+      0  572329    4377
+      1 2699415   19446
+
+```{r}
+#Accuracy:True Positive+ True Negative / Total Observations
+((table(pred_95,test_rf_output)[4])+(table(pred_95,test_rf_output)[1]))/(nrow(test_rf))
+#Precisión:True Positives / (True Positives + False Positives).
+((table(pred_95,test_rf_output)[4]))/((table(pred_95,test_rf_output)[4])+(table(pred_95,test_rf_output)[3]))
+#Recall:True Positives / (True Positives + False Negatives).
+((table(pred_95,test_rf_output)[4]))/((table(pred_95,test_rf_output)[4])+(table(pred_95,test_rf_output)[2]))
+```
+0.179567
+0.81627
+0.00715226
+
+Aumentando el corte de la probabilidad al 90% siguen clasificandose de forma incorrecta casi la mitad de las observaciones.
+
+##Seleccionamos modelo con menor RSME
+
+Prediction2 con log transformación y sin equilibrar.
+
+```{r}
+test$classRF <- prediction_caret2
+test$prob0RF <- prob_caret2$`0`
+test$prob1RF <- prob_caret2$`1`
+write.csv(test,"testdf.csv",row.names = FALSE)
+```
