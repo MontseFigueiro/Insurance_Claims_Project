@@ -116,6 +116,8 @@ prop_siniestro
 ```
 *El 99,27% de las observaciones no han sufrido daño corporal.*
 
+Tabla:
+
 | |Num.Observaciones|Porcentaje|
 |--|------|-----|
 |Claim_Amount=0|13088685|0.99274|
