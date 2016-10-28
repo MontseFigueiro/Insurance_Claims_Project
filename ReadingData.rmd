@@ -120,8 +120,8 @@ Tabla:
 
 | |Num.Observaciones|Porcentaje|
 |--|------|-----|
-|Claim_Amount=0|13088685|0.99274|
-|Claim_Amount!=0| 95605|0.00725|
+|No Claim|13088685|0.99274|
+|Claim| 95605|0.00725|
 
 
 Número de observaciones desglosadas por año y siniestralidad:
