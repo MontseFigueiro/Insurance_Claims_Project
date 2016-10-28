@@ -170,13 +170,13 @@ Distribución de la Variable Dependiente
 Observaciones con importe diferente de 0:
 
     positive <- train[train$Claim_Amount!=0,]
-    hist(positive$Claim_Amount)
+    hist(positive$Claim_Amount,main="Histograma Claim Amount")
 
 ![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-18-1.png)
 
 Aplicando Transformación logarítmica:
 
-    hist(log(positive$Claim_Amount+1))
+    hist(log(positive$Claim_Amount+1),main="Histograma Log Claim Amount")
 
 ![](Correlaciones_Graficos_Datos_files/figure-markdown_strict/unnamed-chunk-19-1.png)
 
