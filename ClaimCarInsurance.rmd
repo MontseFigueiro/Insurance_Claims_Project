@@ -15,16 +15,16 @@ knitr::opts_chunk$set(echo = TRUE)
 
 En el fichero ClaimCarInsurance.rmd se realizaron todos los cálculos previos al desglose entre los distintos ficheros para cada modelo. Una vez finalizado el proyecto se ha eliminado el contenido del presente .rmd y se deja indicado el orden de ejecución de los diferentes archivos.
 
-1) Memoria.pdf
-2) ReadingData.rmd
-3) DataCleaning.rmd
-4) Correlaciones_Graficos_Datos.md
-5) GLM_Clasificacion.rmd
-6) LM_Predicción.rmd
-7) SVM_Regression.rmd
-8) RandomForestRegression.rmd
-9) GBM_Regression.rmd
-10) TreeRegression.rmd
-11) RandomForestClassification.rmd
-12) Comparacion_Modelos.md
-13) ResultadosFinalesPredicciones.md
+* Memoria.pdf
+* ReadingData.rmd
+* DataCleaning.rmd
+* Correlaciones_Graficos_Datos.md
+* GLM_Clasificacion.rmd
+* LM_Predicción.rmd
+* SVM_Regression.rmd
+* RandomForestRegression.rmd
+* GBM_Regression.rmd
+* TreeRegression.rmd
+* RandomForestClassification.rmd
+* Comparacion_Modelos.md
+* ResultadosFinalesPredicciones.md
