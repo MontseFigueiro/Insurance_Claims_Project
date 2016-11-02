@@ -70,10 +70,11 @@ Plot Tree Final Model
 fancyRpartPlot(model_caret_rpart$finalModel)
 ```
  
- |cp     |      RMSE  |    Rsquared   |
- | 0.007416263 | 111.5430 | 0.010437723|
+|cp     |      RMSE  |    Rsquared   |
+|----|-----|-----|
+| 0.007416263 | 111.5430 | 0.010437723|
 |  0.009832359  |110.7779 | 0.013886711|
- | 0.019693905  |110.7876 | 0.004619558|
+| 0.019693905  |110.7876 | 0.004619558|
 
 ```{r}
 prediction_caret <- predict(model_caret_rpart,test_tree)
@@ -94,10 +95,11 @@ Plot Tree Final Model
 fancyRpartPlot(model_caret_rpart_log$finalModel)
 ```
 
- |cp  |        RMSE  |    Rsquared  |
- | 0.02139411 | 1.208959 | 0.08316084|
- | 0.02490962 | 1.226294|  0.05477039|
-  |0.04635521  |1.251758 | 0.02810003|
+|cp  |        RMSE  |    Rsquared  |
+|----|-----|-----|
+| 0.02139411 | 1.208959 | 0.08316084|
+| 0.02490962 | 1.226294|  0.05477039|
+|0.04635521  |1.251758 | 0.02810003|
 
 ```{r}
 prediction_caret_log <- predict(model_caret_rpart_log,test_tree)
@@ -141,9 +143,10 @@ fancyRpartPlot(model_caret_rpart2$finalModel)
 ```
 
 | cp       |    RMSE |     Rsquared  |
- | 0.007589039|  282.3014|  0.04081931|
-  |0.012533955 | 283.5235 | 0.03100314|
-  |0.024593204  |286.8115  |0.01324317|
+|---|-----|------|
+| 0.007589039|  282.3014|  0.04081931|
+|0.012533955 | 283.5235 | 0.03100314|
+|0.024593204  |286.8115  |0.01324317|
 
 ```{r}
 prediction_caret2 <- predict(model_caret_rpart2,test_tree)
@@ -163,10 +166,11 @@ Plot Tree Final Model
 fancyRpartPlot(model_caret_rpart_log2$finalModel)
 ``` 
  
- |cp        |  RMSE  |    Rsquared | 
+|cp        |  RMSE  |    Rsquared | 
+|----|----|-----|
 |  0.02771978|  2.108748|  0.16091854|
- | 0.07123555 | 2.173347 | 0.10863841|
-  |0.07976012  |2.265274  |0.06105898|
+| 0.07123555 | 2.173347 | 0.10863841|
+|0.07976012  |2.265274  |0.06105898|
 
 ```{r}
 prediction_caret_log2 <- predict(model_caret_rpart_log2,test_tree)

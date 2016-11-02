@@ -69,6 +69,7 @@ model_caret_rf
 ```
 
 |mtry | RMSE   |   Rsquared  |
+|----|-----|-----|
 |   2  |  111.3919|  0.02040256|
 |  30 |   115.5130 | 0.02266875|
 |  58 |   119.2584  |0.01360726|
@@ -87,8 +88,9 @@ model_caret_rf_log <- train(log(Claim_Amount+1)~.,data=sample_train, method = "r
 model_caret_rf_log
 ```
 
- |mtry | RMSE  |    Rsquared |
- |  2  |  1.193102|  0.1413571|
+|mtry | RMSE  |    Rsquared |
+|----|----|-----|
+|  2  |  1.193102|  0.1413571|
 |  30   | 1.175708 | 0.1501784|
 |  58   | 1.202918  |0.1284524|
 
@@ -135,7 +137,8 @@ min(model_caret_rf2$results["RMSE"])
 ```
 
 |mtry|  RMSE |     Rsquared  |
- |  2 |   285.6096|  0.03733030|
+|-----|-----|------|
+|  2 |   285.6096|  0.03733030|
 |  30  |  301.3598 | 0.01857029|
 |  58   | 306.9535  |0.01545637|
 
@@ -155,9 +158,10 @@ min(model_caret_rf_log2$results["RMSE"])
 ```
 
 |mtry | RMSE  |    Rsquared |
+|---|-----|-----|
 |   2 |   1.986962|  0.3214529|
 |  30 |   1.854224|  0.3524953|
- | 58 |   1.884988|  0.3344549|
+| 58 |   1.884988|  0.3344549|
 
 ```{r}
 prediction_caret_log2 <- predict(model_caret_rf_log2,test_rf)
