@@ -127,7 +127,7 @@ sqrt(mean((test_tree_output-prediction4)^2))
 ```
 RSME =  39.38349
 
-##K-FOLD CROSS-VALIDATION CON CARET PARA "Least Squares Support Vector Machine" en Datos Equilibrados
+##K-FOLD CROSS-VALIDATION CON CARET DATOS EQUILIBRADOS
 
 Si lo ejecutamos con method= "svmLinear" los resultados son los mismos que ejecutando CVM con el paquete "e1071". 
 

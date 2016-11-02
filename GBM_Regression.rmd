@@ -144,7 +144,7 @@ sqrt(mean((test_gbm_output-prediction4)^2))
 RSME = 39.35612
 
 
-##K-FOLD CROSS-VALIDATION CON CARET PARA "Least Squares Support Vector Machine" en Datos Equilibrados
+##K-FOLD CROSS-VALIDATION CON CARET PARA Datos Equilibrados
 
 ###Sin LOG transformación
 ```{r}
