@@ -62,8 +62,8 @@ CONFUSSION MATRIX
 
 |prediction |      0  |     1|
 |---|----|----|
-      |   0| 2402490 |  18084|
-       |  1 | 869254  |  5739|
+|   0| 2402490 |  18084|
+|  1 | 869254  |  5739|
          
          Accuracy:
 True Positive+ True Negative / Total Observations
@@ -98,8 +98,8 @@ CONFUSSION MATRIX
 
 |prob_95  |     0   |    1|
 |---|----|----|
-   |   0 |3270002  | 23804|
-     | 1  |  1742 |     19|
+|   0 |3270002  | 23804|
+| 1  |  1742 |     19|
 
 ```{r}
 #Accuracy:True Positive+ True Negative / Total Observations
@@ -137,8 +137,8 @@ CONFUSSION MATRIX
 
 |prediction_caret |      0  |     1|
 |----|----|---|
-            |   0 |2116654 |  16447|
-             |  1 |1155090  |  7376|
+|   0 |2116654 |  16447|
+|  1 |1155090  |  7376|
                
                
 Accuracy:
@@ -176,8 +176,8 @@ CONFUSSION MATRIX
 
 |prediction2  |     0  |     1|
 |----|-----|-----|
-    |      0 | 622511  |  4908|
-     |     1| 2649233 |  18915|
+|      0 | 622511  |  4908|
+|     1| 2649233 |  18915|
 
                    Accuracy:
 True Positive+ True Negative / Total Observations
@@ -224,8 +224,8 @@ CONFUSSION MATRIX
 
 |prediction_caret2|       0 |      1|
 |------|------|------|
-             |   0|  570276 |   4359|
-              |  1 |2701468 |  19464|
+|   0|  570276 |   4359|
+|  1 |2701468 |  19464|
 
                   Accuracy:
 True Positive+ True Negative / Total Observations
@@ -263,9 +263,9 @@ table(pred_60,test_rf_output)
 CONFUSSION MATRIX
 
 |pred_60|       0 |      1|
-    |---|-----|-----|
-     | 0  |785995 |   6000|
-    |  1| 2485749 |  17823|
+|---|-----|-----|
+| 0  |785995 |   6000|
+|  1| 2485749 |  17823|
       
       
 ```{r}
