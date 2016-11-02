@@ -196,7 +196,7 @@ end_point = 0.5 + nrow(TablaNas_Positive) + nrow(TablaNas_Positive)-1
 text(seq(1.5,end_point,by=2), par("usr")[3]-0.25, srt = 60, adj= 1, xpd = TRUE,labels = paste(rownames(TablaNas_Positive)), cex=0.70)
 ```
 
-![Barplot_Missing_pattern](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Missing_Pattern_with_claim.jpeg)
+![Barplot_Missing_pattern](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Barplot_missing_pattern.png)
 
 Tenemos en total 23.438.318 de Missing Values, en el campo Porcentaje se indica el tanto por ciento de NA's sobre el total de observaciones de esa variable.
 
@@ -235,7 +235,7 @@ train_aggr = aggr(cols_with_NA, numbers=TRUE, sortVars=TRUE, labels=names(cols_w
 dev.off()
 ```
 
-![MissingValues](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Missing_Pattern_with_claim.jpeg)
+![MissingValues](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Missing_Pattern.jpeg)
 
 
 ##Problemas que nos encontramos en nuestra base de datos:
