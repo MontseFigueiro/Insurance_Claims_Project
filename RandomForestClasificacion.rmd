@@ -61,6 +61,7 @@ table(prediction,test_rf_output)
 CONFUSSION MATRIX
 
 |prediction |      0  |     1|
+|---|----|----|
       |   0| 2402490 |  18084|
        |  1 | 869254  |  5739|
          
@@ -96,6 +97,7 @@ table(prob_95,test_rf_output)
 CONFUSSION MATRIX
 
 |prob_95  |     0   |    1|
+|---|----|----|
    |   0 |3270002  | 23804|
      | 1  |  1742 |     19|
 
@@ -120,6 +122,7 @@ model_caret_rf
 ```
 
 |mtry|  Accuracy  | Kappa  |  
+|---|----|----|
 |   2  |  0.8982003 | 0.0000000|
 |  30  |  0.9076400 | 0.3514852|
  | 58  |  0.9050793 | 0.3478271|
@@ -133,6 +136,7 @@ table(prediction_caret,test_rf_output)
 CONFUSSION MATRIX
 
 |prediction_caret |      0  |     1|
+|----|----|---|
             |   0 |2116654 |  16447|
              |  1 |1155090  |  7376|
                
@@ -171,6 +175,7 @@ table(prediction2,test_rf_output)
 CONFUSSION MATRIX
 
 |prediction2  |     0  |     1|
+|----|-----|-----|
     |      0 | 622511  |  4908|
      |     1| 2649233 |  18915|
 
@@ -204,6 +209,7 @@ model_caret_rf2
 ```
 
 |mtry|  Accuracy|   Kappa  |  
+|----|-----|-----|
  |  2   | 0.7898770 | 0.5798803|
 |  30    |0.8336767 | 0.6671942|
 |  58    |0.8257160 | 0.6512819|
@@ -217,6 +223,7 @@ table(prediction_caret2,test_rf_output)
 CONFUSSION MATRIX
 
 |prediction_caret2|       0 |      1|
+|------|------|------|
              |   0|  570276 |   4359|
               |  1 |2701468 |  19464|
 
@@ -307,6 +314,7 @@ table(pred_95,test_rf_output)
 CONFUSSION MATRIX
 
 |pred_95    |   0  |     1|
+|-----|-----|-----|
  |     0 | 572329 |   4377|
     |  1 |2699415  | 19446|
 
