@@ -1,15 +1,15 @@
 ---
-title: "GLM_Clasificacion"
+title: "Modelo lineal generalizado"
 author: "Aniana González & Montse Figueiro"
 date: "25 de octubre de 2016"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-#CLASIFICACIÓN CON GLM
+##CLASIFICACIÓN CON GLM
 
 Los modelos lineales se basan en los siguientes supuestos:
 
@@ -21,7 +21,7 @@ Los GLM son una extensión de los modelos lineales que permiten
 utilizar distribuciones no normales de los errores (binomiales, Poisson, gamma, etc)
 y varianzas no constantes. 
 
-#Carga de ficheros
+###Carga de ficheros
 
 ```{r}
 train <- read.csv("traindf.csv")
@@ -29,21 +29,17 @@ test <- read.csv("testdf.csv")
 train_downSample <- read.csv("train_downSample.csv")
 memory.limit(size=60000)
 train$clasification <- as.factor(ifelse(train$Claim_Amount==0,"0","1"))
-train$clasification <- as.factor(train$clasification)
 test$clasification <- as.factor(ifelse(test$Claim_Amount==0,"0","1"))
-test$clasification <- as.factor(test$clasification)
 ```
 
-#Nos quedamos con las columnas que necesitamos para el modelo
+Nos quedamos con las columnas que necesitamos para el modelo
 
 ```{r}
-cols <- c("Model_Year", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6","Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3", "NVVar4","Claim_Amount","clasification")
-
+cols <- c("Model_Year", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6","Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3", "NVVar4","clasification")
 train_glm <- train[,cols]
-head(train_glm)
 ```
 
-#Nos quedamos con las columnas que necesitamos del test
+Nos quedamos con las columnas que necesitamos del test
 ```{r}
 cols <- c("Model_Year","Cat1","Cat2","Cat3","Cat4","Cat5","Cat6","Cat7","Cat8",
           "Cat9","OrdCat","Var1","Var2","Var3","Var4","Var5","Var6","Var7","Var8","NVCat","NVVar1",
@@ -54,7 +50,7 @@ test_clas <- test[,"clasification"]
 ```
 
 
-#Visualizamos las caracteristicas de los ficheros
+Visualizamos las características de los ficheros
 
 ```{r}
 head(train)
@@ -64,32 +60,32 @@ head(test_glm)
 head(train_downSample)
 ```
 
-#Hacemos el model GLM para predecir si va a existir daño corporal o no. Utilizamos el fichero con los datos agregados pero sin balancear.
+###ENTRENAMIENTO TRAIN AGREGADO SIN EQUILIBRAR
+
+Hacemos el model GLM para predecir si va a existir daño corporal o no. Utilizamos el fichero con los datos agregados pero sin balancear.
 
 Nos da como resultado un AIC de 335.472
-Calculamos R^2 dandonos como resultado 0.2720185
+Calculamos R^2 dándonos como resultado 0.2720185
 
 ```{r}
 model_train_clas=glm(clasification~ Model_Year+
 Cat1+ Cat2+ Cat3+ Cat4+Cat5+Cat6+Cat7+Cat8+Cat9+OrdCat+Var1+Var2+Var3+Var4+Var5+Var6+Var7+Var8+ NVCat+NVVar1+NVVar2+NVVar3+NVVar4, data=train_glm,family=binomial(link="logit"))
 summary(model_train_clas)
 ```
+
 Calculamos R^2
-
 ```{r}
-#R^2 
 1 - (deviance(model_train_clas)/model_train_clas$null.deviance)
-
 ```
-Aplicamos el modelo al fichero test y validamos
 
+Aplicamos el modelo al fichero test y validamos
 ```{r}
-test_glm$clasification <- NULL
 test_glm$prediccion=predict(model_train_clas, newdata=test_glm, type="response")
 clasificacion_test <- ifelse(test_glm$prediccion < 0.5,0,1)
 table(clasificacion_test,test_clas)
 ```
-Tabla de clasificación
+
+CONFUSION MATRIX
 
 |    |no | si|
 |----|---|----|
@@ -121,9 +117,10 @@ True Positives / (True Positives + False Negatives).
 ```
 *0.006511096*
 
-#Curva ROC sobre el test
+###Curva ROC sobre el test
 
 ```{r}
+library(ROCR)
 Pred_auxiliar_test= prediction(test_glm$prediccion, clasificacion_test, label.ordering = NULL)
 class(Pred_auxiliar_test)
 auc.tmp_test = performance(Pred_auxiliar_test, "auc")
@@ -135,7 +132,9 @@ plot(CURVA_ROC_model_train_clas_test,colorize=TRUE)
 abline(a=0,b=1)
 ```
 
-#Hacemos el model GLM para predecir si va a existir daño corporal o no. Utilizamos el fichero con los datos balanceados y agregados.
+###ENTRENAMIENTO TRAIN EQUILIBRADO
+
+Hacemos el model GLM para predecir si va a existir daño corporal o no. Utilizamos el fichero con los datos balanceados y agregados.
 
 Nos da como resultado un AIC de 139.578
 Calculamos R^2 dandonos como resultado 0.299275
@@ -146,9 +145,8 @@ Cat1+ Cat2+ Cat3+ Cat4+Cat5+Cat6+Cat7+Cat8+Cat9+OrdCat+Var1+Var2+Var3+Var4+Var5+
 summary(model_down_clas)
 ```
 
-#R^2 
+```{r}
 1 - (deviance(model_down_clas)/model_down_clas$null.deviance)
-
 ```
 Aplicamos el modelo al fichero test y validamos
 
@@ -158,7 +156,8 @@ test_glm$prediccion=predict(model_down_clas, newdata=test_glm, type="response")
 clasificacion_test <- ifelse(test_glm$prediccion < 0.5,0,1)
 table(clasificacion_test,test_clas)
 ```
-Tabla de clasificación
+
+CONFUSION MATRIX
 
 |    |no | si|
 |----|---|----|
@@ -202,4 +201,14 @@ auc_model_down_clas_test
 CURVA_ROC_model_down_clas_test <- performance(Pred_auxiliar_test,"tpr","fpr")
 plot(CURVA_ROC_model_down_clas_test,colorize=TRUE)
 abline(a=0,b=1)
+```
+
+###Seleccionamos el Modelo con mayor Precisión
+
+En éste caso es muy difícil la valoración de los modelos puesto que la clasificación no es buena, hay un elevado número de Falsos Positivos y de Falsos Negativos, lo que nos da a entender que las variables independientes no influyen en el hecho de tener daño corporal o no.
+
+```{r}
+test$classGLM <- clasificacion_test
+test$ProbGLM <- test_glm$prediccion
+write.csv(test,"testdf.csv",row.names=FALSE)
 ```

@@ -2,19 +2,18 @@
 title: "Regresion lineal Claim Amount"
 author: "Aniana González & Montse Figueiro"
 date: "25 de octubre de 2016"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-#Regresión lineal (LM)
+
+##Regresión lineal (LM)
 
 En estadística la regresión lineal o ajuste lineal es un modelo matemático usado para aproximar la relación de dependencia entre una variable dependiente Y, las variables independientes Xi y un término aleatorio.
 
-##PREDECIR EL IMPORTE POR DAÑO CORPORAL
-
-#Carga de ficheros
+###Carga de ficheros
 
 ```{r}
 train <- read.csv("traindf.csv")
@@ -22,25 +21,17 @@ test <- read.csv("testdf.csv")
 train_completo <- read.csv("train_completo_limpio.csv")
 train_downSample <- read.csv("train_downSample.csv")
 memory.limit(size=60000)
-train$clasification <- as.factor(ifelse(train$Claim_Amount==0,"0","1"))
-train$clasification <- as.factor(train$clasification)
-train_completo$clasification <- as.factor(ifelse(train_completo$Claim_Amount==0,"0","1"))
-train_completo$clasification <- as.factor(train_completo$clasification)
 ```
-#Visualizamos los DataFrames
+###Visualizamos los DataFrames
 
 ```{r}
 head(train)
-head(train_lm)
 head(test)
-head(test_lm)
 head(train_completo)
-head(train_completo_lm)
 head(train_downSample)
 ```
 
-
-#Nos quedamos con las columnas que necesitamos del test
+Nos quedamos con las columnas que necesitamos del test
 ```{r}
 cols <- c("Model_Year","Cat1","Cat2","Cat3","Cat4","Cat5","Cat6","Cat7","Cat8",
           "Cat9","OrdCat","Var1","Var2","Var3","Var4","Var5","Var6","Var7","Var8","NVCat","NVVar1",
@@ -51,27 +42,29 @@ test_amount <- test[,"Claim_Amount"]
 ```
 
 
-#Nos quedamos con las columnas que necesitamos en el train_completo para el modelo
+Nos quedamos con las columnas que necesitamos en el train_completo para el modelo
 ```{r}
-cols <- c("Model_Year", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6","Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3", "NVVar4","Claim_Amount","clasification")
+cols <- c("Model_Year", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6","Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3", "NVVar4","Claim_Amount")
 
 train_completo_lm <- train_completo[,cols]
 ```
 
-#Nos quedamos con las columnas que necesitamos en el train
+Nos quedamos con las columnas que necesitamos en el train
 
 ```{r}
-cols <- c("Model_Year", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6","Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3", "NVVar4","Claim_Amount","clasification")
+cols <- c("Model_Year", "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8", "Cat9", "OrdCat", "Var1", "Var2", "Var3", "Var4", "Var5", "Var6","Var7", "Var8", "NVCat", "NVVar1", "NVVar2", "NVVar3", "NVVar4","Claim_Amount")
 
 train_lm <- train[,cols]
 ```
-#Creamos el modelo LM para predecir el importe por daño corporal, en función de las caracteristicas del vehículo y de las polizas. Con el train completo
+
+###ENTRENAMIENTO CON TRAIN COMPLETO
+
+Creamos el modelo LM para predecir el importe por daño corporal, en función de las características del vehículo y de las pólizas. Con el train completo
 
 R-squared:  3.31e-05
 
 ```{r}
-model_train_complet=lm(Claim_Amount ~ Model_Year+
-Cat1+ Cat2+ Cat3+ Cat4+Cat5+Cat6+Cat7+Cat8+Cat9+OrdCat+Var1+Var2+Var3+Var4+Var5+Var6+Var7+Var8+ NVCat+NVVar1+NVVar2+NVVar3+NVVar4, data=train_completo_lm)
+model_train_complet=lm(Claim_Amount ~ Model_Year+Cat1+ Cat2+ Cat3+ Cat4+Cat5+Cat6+Cat7+Cat8+Cat9+OrdCat+Var1+Var2+Var3+Var4+Var5+Var6+Var7+Var8+ NVCat+NVVar1+NVVar2+NVVar3+NVVar4, data=train_completo_lm)
 
 summary(model_train_complet)
 ```
@@ -83,12 +76,14 @@ RMSE: 39.34202
 
 ```{r}
 test_lm$prediccion=predict(model_train_complet, newdata=test_lm, type="response")
-coef(model_train_completo)
+coef(model_train_complet)
 rmse_train_complet = sqrt( mean((test_lm$prediccion-test_amount)^2, na.rm = TRUE) )
 rmse_train_complet 
 ```
 
-#Creamos el modelo LM para predecir el importe por daño corporal, en función de las caracteristicas del vehículo y de las polizas. Con el train completo aplicando el logaritmo a la variable respuesta.
+###ENTRENAMIENTO TRAIN COMPLETO CON TRANSFORMACIÓN LOGARÍTMICA
+
+Creamos el modelo LM para predecir el importe por daño corporal, en función de las características del vehículo y de las pólizas. Con el train completo aplicando el logaritmo a la variable respuesta.
 
 R-squared:  0.0005613
 
@@ -111,9 +106,9 @@ rmse_train_completo = sqrt( mean((test_lm$prediccion-test_amount)^2, na.rm = TRU
 rmse_train_completo 
 ```
 
+###ENTRENAMIENTO CON TRAIN AGREGADO
 
-
-#Creamos el modelo LM para predecir el importe por daño corporal, en función de las caracteristicas del vehículo y de las polizas. Con los datos sin balancear (train_lm)
+Creamos el modelo LM para predecir el importe por daño corporal, en función de las características del vehículo y de las pólizas. Con los datos sin balancear (train_lm)
 
 R-squared:  0.03828
 
@@ -136,7 +131,9 @@ rmse_SinBalan_Sinlog = sqrt( mean( (test_lm$prediccion-test_amount)^2, na.rm = T
 rmse_SinBalan_Sinlog 
 ```
 
-#Creamos el modelo LM para predecir el importe por daño corporal, en función de las caracteristicas del vehículo y de las polizas. Con los datos agregados
+###ENTRENAMIENTO TRAIN AGREGADO CON TRANSFORMACIÓN LOGARÍTMICA
+
+Creamos el modelo LM para predecir el importe por daño corporal, en función de las características del vehículo y de las pólizas. Con los datos agregados
 
 R-squared:  0.1641
 
@@ -162,7 +159,9 @@ rmse_SinBalan = sqrt( mean( (test_lm$prediccion-test_amount)^2, na.rm = TRUE) )
 rmse_SinBalan 
 ```
 
-#Creamos el modelo LM para predecir el importe por daño corporal, en función de las caracteristicas del vehículo y de las polizas. Con los datos agregados y con la base de datos balanceada.
+###ENTRENAMIENTO TRAIN EQUILIBRADO (DOWNSAMPLE)
+
+Creamos el modelo LM para predecir el importe por daño corporal, en función de las características del vehículo y de las pólizas. Con los datos agregados y con la base de datos balanceada.
 
 R-squared: 0.05042
 
@@ -183,7 +182,9 @@ rmse_Balanceado_SinLog = sqrt( mean((test_lm$prediccion-test_amount)^2, na.rm = 
 rmse_Balanceado_SinLog 
 ```
 
-#Creamos el modelo LM para predecir el importe por daño corporal, en función de las caracteristicas del vehículo y de las polizas. Con los datos agregados y con la base de datos balanceada, aplicando el logaritmo a la variable respuesta.
+###ENTRENAMIENTO TRAIN EQUILIBRADO CON TRANSFORMACIÓN LOGARÍTMICA (DOWNSAMPLE)
+
+Creamos el modelo LM para predecir el importe por daño corporal, en función de las características del vehículo y de las pólizas. Con los datos agregados y con la base de datos balanceada, aplicando el logaritmo a la variable respuesta.
 
 R-squared de 0.274
 
@@ -204,3 +205,12 @@ rmse_Balanceado = sqrt( mean((test_lm$prediccion-test_amount)^2, na.rm = TRUE) )
 rmse_Balanceado 
 ```
 
+
+###Seleccionamos el modelo con menor RMSE
+
+Modelo con el fichero Train Completo y sin transformación logarítmica.
+
+```{r}
+test$predLM <- test_lm$prediccion
+write.csv(test,"testdf.csv",row.names=FALSE)
+```
