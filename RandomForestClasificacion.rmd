@@ -1,5 +1,5 @@
 ---
-title: "Clasificación con SVM"
+title: "Clasificación con Random Forest"
 author: "Montse Figueiro & Aniana González"
 date: "28 de octubre de 2016"
 output: html_document
@@ -58,11 +58,11 @@ prob <- predict(model_rf,test_rf,type="prob")
 table(prediction,test_rf_output)
 ```
 
+CONFUSSION MATRIX
 
- test_rf_output
-prediction       0       1
-         0 2402490   18084
-         1  869254    5739
+|prediction |      0  |     1|
+      |   0| 2402490 |  18084|
+       |  1 | 869254  |  5739|
          
          Accuracy:
 True Positive+ True Negative / Total Observations
@@ -93,10 +93,11 @@ prob_95 <- as.factor(ifelse(prob1 >0.95,"1","0"))
 table(prob_95,test_rf_output)
 ```
 
-      test_rf_output
-prob_95       0       1
-      0 3270002   23804
-      1    1742      19
+CONFUSSION MATRIX
+
+|prob_95  |     0   |    1|
+   |   0 |3270002  | 23804|
+     | 1  |  1742 |     19|
 
 ```{r}
 #Accuracy:True Positive+ True Negative / Total Observations
@@ -118,10 +119,10 @@ model_caret_rf <- train(clasification~.,data=sample_train, method = "rf", trCont
 model_caret_rf
 ```
 
-mtry  Accuracy   Kappa    
-   2    0.8982003  0.0000000
-  30    0.9076400  0.3514852
-  58    0.9050793  0.3478271
+|mtry|  Accuracy  | Kappa  |  
+|   2  |  0.8982003 | 0.0000000|
+|  30  |  0.9076400 | 0.3514852|
+ | 58  |  0.9050793 | 0.3478271|
   
 ```{r}
 prediction_caret <- predict(model_caret_rf,test_rf)
@@ -129,13 +130,14 @@ prob_caret <- predict(model_caret_rf,test_rf,type="prob")
 table(prediction_caret,test_rf_output)
 ```
 
- test_rf_output
-prediction_caret       0       1
-               0 2116654   16447
-               1 1155090    7376
+CONFUSSION MATRIX
+
+|prediction_caret |      0  |     1|
+            |   0 |2116654 |  16447|
+             |  1 |1155090  |  7376|
                
                
-                        Accuracy:
+Accuracy:
 True Positive+ True Negative / Total Observations
 ```{r}
 ((table(prediction_caret,test_rf_output)[4])+(table(prediction_caret,test_rf_output)[1]))/(nrow(test_rf))
@@ -166,10 +168,11 @@ prob2 <- predict(model_rf2,test_rf,type="prob")
 table(prediction2,test_rf_output)
 ```
 
- test_rf_output
-prediction2       0       1
-          0  622511    4908
-          1 2649233   18915
+CONFUSSION MATRIX
+
+|prediction2  |     0  |     1|
+    |      0 | 622511  |  4908|
+     |     1| 2649233 |  18915|
 
                    Accuracy:
 True Positive+ True Negative / Total Observations
@@ -200,10 +203,10 @@ model_caret_rf2 <- train(clasification~.,data=sample_train_down, method = "rf", 
 model_caret_rf2
 ```
 
-mtry  Accuracy   Kappa    
-   2    0.7898770  0.5798803
-  30    0.8336767  0.6671942
-  58    0.8257160  0.6512819
+|mtry|  Accuracy|   Kappa  |  
+ |  2   | 0.7898770 | 0.5798803|
+|  30    |0.8336767 | 0.6671942|
+|  58    |0.8257160 | 0.6512819|
 
 ```{r}
 prediction_caret2 <- predict(model_caret_rf2,test_rf)
@@ -211,10 +214,11 @@ prob_caret2 <- predict(model_caret_rf2,test_rf,type="prob")
 table(prediction_caret2,test_rf_output)
 ```
 
-                test_rf_output
-prediction_caret2       0       1
-                0  570276    4359
-                1 2701468   19464
+CONFUSSION MATRIX
+
+|prediction_caret2|       0 |      1|
+             |   0|  570276 |   4359|
+              |  1 |2701468 |  19464|
 
                   Accuracy:
 True Positive+ True Negative / Total Observations
@@ -249,6 +253,8 @@ pred_60 <- as.factor(ifelse(prob_caret2$`1`>0.6,"1","0"))
 table(pred_60,test_rf_output)
 ```
 
+CONFUSSION MATRIX
+
 |pred_60|       0 |      1|
     |---|-----|-----|
      | 0  |785995 |   6000|
@@ -273,6 +279,7 @@ pred_70 <- as.factor(ifelse(prob_caret2$`1`>0.7,"1","0"))
 table(pred_70,test_rf_output)
 ```
 
+CONFUSSION MATRIX
 
 |pred_70|       0 |      1|
       |---|-----|-----|
@@ -297,10 +304,11 @@ pred_95 <- as.factor(ifelse(prob_caret2$`1`>0.5,"1","0"))
 table(pred_95,test_rf_output)
 ```
 
- test_rf_output
-pred_95       0       1
-      0  572329    4377
-      1 2699415   19446
+CONFUSSION MATRIX
+
+|pred_95    |   0  |     1|
+ |     0 | 572329 |   4377|
+    |  1 |2699415  | 19446|
 
 ```{r}
 #Accuracy:True Positive+ True Negative / Total Observations

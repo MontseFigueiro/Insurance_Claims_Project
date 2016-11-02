@@ -67,10 +67,11 @@ ctrl <- trainControl(method="repeatedcv",number = 5)
 model_caret_rf <- train(Claim_Amount~.,data=sample_train, method = "rf", trControl = ctrl)
 model_caret_rf
 ```
-mtry  RMSE      Rsquared  
-   2    111.3919  0.02040256
-  30    115.5130  0.02266875
-  58    119.2584  0.01360726
+
+|mtry | RMSE   |   Rsquared  |
+|   2  |  111.3919|  0.02040256|
+|  30 |   115.5130 | 0.02266875|
+|  58 |   119.2584  |0.01360726|
 
 ```{r}
 prediction_caret <- predict(model_caret_rf,test_rf)
@@ -86,16 +87,16 @@ model_caret_rf_log <- train(log(Claim_Amount+1)~.,data=sample_train, method = "r
 model_caret_rf_log
 ```
 
- mtry  RMSE      Rsquared 
-   2    1.193102  0.1413571
-  30    1.175708  0.1501784
-  58    1.202918  0.1284524
+ |mtry | RMSE  |    Rsquared |
+ |  2  |  1.193102|  0.1413571|
+|  30   | 1.175708 | 0.1501784|
+|  58   | 1.202918  |0.1284524|
 
 ```{r}
 prediction_caret_log <- predict(model_caret_rf_log,test_rf)
 sqrt(mean((test_rf_output-prediction_caret_log)^2))
 ```
-39.36
+RSME= 39.36
 
 ##REGRESION SVR CON DATOS EQUILIBRADOS
 
@@ -133,16 +134,16 @@ model_caret_rf2
 min(model_caret_rf2$results["RMSE"])
 ```
 
-mtry  RMSE      Rsquared  
-   2    285.6096  0.03733030
-  30    301.3598  0.01857029
-  58    306.9535  0.01545637
+|mtry|  RMSE |     Rsquared  |
+ |  2 |   285.6096|  0.03733030|
+|  30  |  301.3598 | 0.01857029|
+|  58   | 306.9535  |0.01545637|
 
 ```{r}
 prediction_caret2 <- predict(model_caret_rf2,test_rf)
 sqrt(mean((test_rf_output-prediction_caret2)^2))
 ```
-130.7403
+RSME= 130.7403
 
 ###Con LOG transformación
 
@@ -153,16 +154,16 @@ model_caret_rf_log2
 min(model_caret_rf_log2$results["RMSE"])
 ```
 
-mtry  RMSE      Rsquared 
-   2    1.986962  0.3214529
-  30    1.854224  0.3524953
-  58    1.884988  0.3344549
+|mtry | RMSE  |    Rsquared |
+|   2 |   1.986962|  0.3214529|
+|  30 |   1.854224|  0.3524953|
+ | 58 |   1.884988|  0.3344549|
 
 ```{r}
 prediction_caret_log2 <- predict(model_caret_rf_log2,test_rf)
 sqrt(mean((test_rf_output-prediction_caret_log2)^2))
 ```
-39.39541
+RSME=39.39541
 
 ##Seleccionamos modelo con menor RSME
 

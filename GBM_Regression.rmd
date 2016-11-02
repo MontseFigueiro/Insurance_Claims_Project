@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ##REGRESIÓN CON GBM (Gradient Boosted Machine)
+
+###Librerias
 ```{r}
 library(caret)
 library(gbm)
@@ -37,7 +39,7 @@ test_gbm_output <- test[,"Claim_Amount"]
 
 ##GBM REGRESIÓN CON DATOS DESEQUILIBRADOS
 
-Boosting is an ensemble method developed for classification for reducing bias where models are added to learn the misclassification errors in existing models. It has been generalized and adapted in the form of Gradient Boosted Machines (GBM) for use with CART decision trees for classification and regression.
+Método desarrollado para la clasificación para reducir el sesgo que se añaden a los modelos para aprender los errores de clasificación de los modelos existentes. Se ha generalizado y adaptado en forma de Gradient Boosted Machine (GBM) para su uso con los árboles de decisión de clasificación y regresión.
 
 
 ###SIN LOG TRANSFORMACIÓN
@@ -69,16 +71,17 @@ ctrl <- trainControl(method="repeatedcv",repeats=5,number = 10)
 model_caret_gbm <- train(Claim_Amount~.,data=sample_train, method = "gbm", trControl = ctrl)
 model_caret_gbm
 ```
-interaction.depth  n.trees  RMSE      Rsquared  
-  1                   50      106.9766  0.02863827
-  1                  100      106.9344  0.03001587
-  1                  150      106.9473  0.03037122
-  2                   50      107.4892  0.03026116
-  2                  100      108.2174  0.02772537
-  2                  150      108.6716  0.02799684
-  3                   50      107.8446  0.03016242
-  3                  100      108.8614  0.02762303
-  3                  150      109.5989  0.02681473
+
+|interaction.depth | n.trees|  RMSE   |   Rsquared  |
+|  1      |             50   |   106.9766|  0.02863827|
+|  1       |           100  |    106.9344|  0.03001587|
+|  1        |          150  |    106.9473|  0.03037122|
+|  2         |          50  |    107.4892|  0.03026116|
+|  2          |        100  |    108.2174|  0.02772537|
+|  2           |       150  |    108.6716|  0.02799684|
+|  3            |       50  |    107.8446|  0.03016242|
+|  3             |     100  |    108.8614|  0.02762303|
+|  3              |    150  |    109.5989|  0.02681473|
 
 ```{r}
 prediction_caret <- predict(model_caret_gbm,test_gbm)
@@ -93,23 +96,25 @@ ctrl <- trainControl(method="repeatedcv",repeats=5,number = 10)
 model_caret_gbm_log <- train(log(Claim_Amount+1)~.,data=sample_train, method = "gbm", trControl = ctrl)
 model_caret_gbm_log
 ```
-interaction.depth  n.trees  RMSE      Rsquared 
-  1                   50      1.196408  0.1122657
-  1                  100      1.181375  0.1294317
-  1                  150      1.174601  0.1367956
-  2                   50      1.169310  0.1504169
-  2                  100      1.155924  0.1650154
-  2                  150      1.152023  0.1683297
-  3                   50      1.154251  0.1705702
-  3                  100      1.146046  0.1773242
-  3                  150      1.143627  0.1794069
+ 
+ |interaction.depth|  n.trees | RMSE   |   Rsquared |
+ | 1          |         50    |  1.196356|  0.1123940|
+|  1           |       100    |  1.181745 | 0.1295291|
+|  1            |      150    |  1.174935 | 0.1371299|
+|  2             |      50    |  1.169607 | 0.1506846|
+|  2              |    100    |  1.156314 | 0.1644910|
+|  2               |   150    |  1.151622 | 0.1686907|
+|  3            |   50      |1.154309 | 0.1701062|
+|  3             |     100   |   1.144279 | 0.1794945|
+|  3              |    150    |  1.143413  |0.1786540|
+
 
 
 ```{r}
 prediction_caret_log <- predict(model_caret_gbm_log,test_gbm)
 sqrt(mean((test_gbm_output-prediction_caret_log)^2))
 ```
-39.35023
+39.34993
 
 ##REGRESION SVR CON DATOS EQUILIBRADOS
 
@@ -146,16 +151,17 @@ model_caret_gbm2 <- train(Claim_Amount~.,data=sample_train_down, method = "gbm",
 model_caret_gbm2
 min(model_caret_gbm2$results["RMSE"])
 ```
- interaction.depth  n.trees  RMSE      Rsquared  
-  1                   50      281.1104  0.05305882
-  1                  100      280.3729  0.05555733
-  1                  150      280.2858  0.05559467
-  2                   50      281.0628  0.05045275
-  2                  100      281.4255  0.04848147
-  2                  150      282.2355  0.04516142
-  3                   50      281.7959  0.04595110
-  3                  100      283.0363  0.04228916
-  3                  150      284.7311  0.03805902
+
+| interaction.depth | n.trees|  RMSE  |    Rsquared  |
+|  1      |             50|      281.1104 | 0.05305882|
+|  1       |           100 |     280.3729 | 0.05555733|
+|  1        |          150  |    280.2858 | 0.05559467|
+ | 2         |          50   |   281.0628 | 0.05045275|
+|  2          |        100    |  281.4255 | 0.04848147|
+ | 2           |       150     | 282.2355 | 0.04516142|
+|  3            |       50      |281.7959 | 0.04595110|
+ | 3             |     100      |283.0363 | 0.04228916|
+|  3              |    150      |284.7311 | 0.03805902|
 
 
 ```{r}
@@ -172,16 +178,17 @@ model_caret_gbm_log2 <- train(log(Claim_Amount+1)~.,data=sample_train_down, meth
 model_caret_gbm_log2
 min(model_caret_gbm_log2$results["RMSE"])
 ```
-interaction.depth  n.trees  RMSE      Rsquared 
-  1                   50      2.026460  0.2636104
-  1                  100      1.961306  0.2904541
-  1                  150      1.929692  0.3075081
-  2                   50      1.947264  0.3041004
-  2                  100      1.884237  0.3397761
-  2                  150      1.856169  0.3554072
-  3                   50      1.900072  0.3342330
-  3                  100      1.845919  0.3632660
-  3                  150      1.826670  0.3732873
+
+|interaction.depth|  n.trees|  RMSE    |  Rsquared |
+|  1              |     50  |    2.026460|  0.2636104|
+|  1              |    100  |    1.9613061|  0.2904541|
+|  1              |    150  |    1.929692 | 0.3075081|
+|  2              |     50  |    1.947264 | 0.3041004|
+|  2              |    100  |    1.884237 | 0.3397761|
+|  2              |    150  |    1.856169 | 0.3554072|
+|  3              |     50  |    1.900072 | 0.3342330|
+|  3              |    100  |    1.845919 | 0.3632660|
+|  3              |    150  |    1.826670 | 0.3732873|
 
 
 ```{r}
@@ -192,9 +199,9 @@ sqrt(mean((test_gbm_output-prediction_caret_log2)^2))
 
 ##Seleccionamos modelo con menor RSME
 
-Prediction4 con log transformación y equilibrado.
+Prediction con log transformación y sin equilibrado de datos.
 
 ```{r}
-test$predGBM <- prediction4
+test$predGBM <- prediction_caret_log
 write.csv(test,"testdf.csv",row.names = FALSE)
 ```

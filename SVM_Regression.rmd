@@ -18,7 +18,6 @@ memory.limit(90000)
 ```
 
 ###Carga de Datos
-
 ```{r}
 train <- read.csv("traindf.csv")
 test <- read.csv("testdf.csv")
@@ -92,10 +91,11 @@ ctrl <- trainControl(method="repeatedcv",repeats=5,number = 10)
 model_caret_svm <- train(Claim_Amount~.,data=sample_train, method = "svmRadial", trControl = ctrl, importance=TRUE)
 model_caret_svm
 ```
- C     RMSE      Rsquared  
-  0.25  108.0015  0.03117261
-  0.50  107.8672  0.02975896
-  1.00  107.7258  0.02810526
+ 
+ |C   |  RMSE  |    Rsquared  |
+ | 0.25 | 108.0015|  0.03117261|
+ | 0.50 | 107.8672 | 0.02975896|
+|  1.00 | 107.7258 | 0.02810526|
 
 Variables importantes
 ```{r}
@@ -116,16 +116,16 @@ model_caret_svm_log <- train(log(Claim_Amount+1)~.,data=sample_train, method = "
 model_caret_svm_log
 ```
 
- C     RMSE      Rsquared 
-  0.25  1.264580  0.1634065
-  0.50  1.250895  0.1662084
-  1.00  1.235304  0.1694657
+ |C |    RMSE  |    Rsquared |
+  |0.25 | 1.264580  |0.1634065|
+  |0.50  |1.250895|  0.1662084|
+ | 1.00 | 1.235304 | 0.1694657|
 
 ```{r}
 prediction_caret_log <- predict(model_caret_svm_log,test_svm)
 sqrt(mean((test_svm_output-prediction_caret_log)^2))
 ```
-39.35668
+RMSE=39.35668
 
 ##REGRESION SVR CON DATOS EQUILIBRADOS
 
@@ -169,16 +169,16 @@ model_caret_svm2 <- train(Claim_Amount~.,data=sample_train_down, method = "svmRa
 model_caret_svm2
 ```
 
- C     RMSE      Rsquared  
-  0.25  289.5053  0.05487481
-  0.50  289.0325  0.04907009
-  1.00  288.4932  0.04252835
+ |C     RMSE   |   Rsquared | 
+ | 0.25 | 289.5053 | 0.05487481|
+ | 0.50 | 289.0325 | 0.04907009|
+ | 1.00 | 288.4932 | 0.04252835|
 
 ```{r}
 prediction_caret2 <- predict(model_caret_svm2,test_svm)
 sqrt(mean((test_svm_output-prediction_caret2)^2))
 ```
-67.89893
+RSME=67.89893
 
 ###Con LOG transformación
 
@@ -187,10 +187,11 @@ ctrl <- trainControl(method="repeatedcv",repeats=5,number = 10)
 model_caret_svm_log2 <- train(log(Claim_Amount+1)~.,data=sample_train_down, method = "svmRadial", trControl = ctrl)
 model_caret_svm_log2
 ```
-C     RMSE      Rsquared 
-  0.25  1.996690  0.2913780
-  0.50  1.986080  0.2956255
-  1.00  1.981619  0.2959949
+
+|C  |   RMSE |     Rsquared |
+ | 0.25|  1.996690 | 0.2913780|
+|  0.50 | 1.986080|  0.2956255|
+ | 1.00  |1.981619 | 0.2959949|
 
 ```{r}
 prediction_caret_log2 <- predict(model_caret_svm_log2,test_svm)

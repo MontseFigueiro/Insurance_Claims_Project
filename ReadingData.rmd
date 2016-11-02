@@ -2,7 +2,7 @@
 title: "Reading Data"
 author: "Montse Figueiro & Aniana González"
 date: "13 de octubre de 2016"
-output: pdf_document
+output: html_document
 ---
 
 
@@ -31,7 +31,6 @@ El fichero contiene los siguientes campos:
 * Tenemos dos datasets:
     + Training de 2005-2007 para construir el modelo.
     + Test de 2008-2009 sobre el que se tendrían que realizar las predicciones.(no lo vamos a utilizar)
-    
 
 ###Objetivo del Estudio
 
@@ -39,8 +38,8 @@ El fichero contiene los siguientes campos:
 
 Clasificar que vehículos tendrán siniestro con daño corporal en función de sus características.
 
-    + Naive Bayes
-    + Trees (rpart)
+    + GLM Modelo Lineal Generalizado
+    + Random Forest
 
 
 ####Segundo Objetivo:Regressión
@@ -48,11 +47,12 @@ Clasificar que vehículos tendrán siniestro con daño corporal en función de s
 Es conseguir predecir en función de las características del vehículo los pagos por daño corporal ocasionados anualmente por cada vehículo.
 
     + Random Forest Regresión.
+    + Modelo Basado en Árboles (Rpart)
     + Previsión Datos numéricos - Métodos de Regresión
-        + GLM
-        + LM (PCA)
-        + SVM
-        + GBM
+        + LM Regresión Lineal
+        + SVM Support Vector Machine
+        + GBM Generalized Boosted Modeling
+        
 
 
 **En nuestro estudio solo vamos a utilizar el fichero Training (Desglosado en dos Train/Test) puesto que solo la empresa aseguradora conoce los datos reales para los años 2008-2009 y por lo tanto no podemos hacer la validación con el fichero Test.**
@@ -60,7 +60,7 @@ Es conseguir predecir en función de las características del vehículo los pago
 
 ##Code Book Variables
 
-[Dictionary](https://kaggle2.blob.core.windows.net/competitions-data/kaggle/2509/dictionary.html?sv=2012-02-12&se=2016-10-17T11%3A07%3A44Z&sr=b&sp=r&sig=79Ol5BgaJmVIRi1RdPLmz5R0DvRiBv2OVYAB8vbU8Co%3D)
+[Dictionary](https://kaggle2.blob.core.windows.net/competitions-data/kaggle/2509/dictionary.html?sv=2012-02-12&se=2016-11-05T10%3A10%3A10Z&sr=b&sp=r&sig=UXekhRdTLuCKdWESrhGsIddDJO2vMrvRx0MvrT%2BYqhQ%3D)
 
 
 ##Lectura de Datos
@@ -72,14 +72,11 @@ summary(train)
 ```
 
 ###problema de memoria
-
 ```{r}
-memory.limit()
 memory.limit(size=60000)
 ```
 
 ###Cambiamos los tipos de variables:
-
 ```{r}
 class(train)
 ```
@@ -195,11 +192,14 @@ TablaNas_Positive <- Tabla_NAs[Tabla_NAs$NumNAs>0,]
 
 Barplot de los Missing Values:
 ```{r}
+par(mfrow=c(1,1))
 TablaNas_Positive= TablaNas_Positive[with(TablaNas_Positive, order(-NumNAs)), ]
 barplot(TablaNas_Positive$NumNAs, col="grey50", main="Frecuencia Missing Values por Variable",ylab="Frecuencia", xlab = "variable",space=1)
 end_point = 0.5 + nrow(TablaNas_Positive) + nrow(TablaNas_Positive)-1 
 text(seq(1.5,end_point,by=2), par("usr")[3]-0.25, srt = 60, adj= 1, xpd = TRUE,labels = paste(rownames(TablaNas_Positive)), cex=0.70)
 ```
+
+![Barplot_Missing_pattern](https://github.com/MontseFigueiro/Insurance_Claims_Project/blob/master/Graficos/Missing_Pattern_with_claim.jpeg)
 
 Tenemos en total 23.438.318 de Missing Values, en el campo Porcentaje se indica el tanto por ciento de NA's sobre el total de observaciones de esa variable.
 

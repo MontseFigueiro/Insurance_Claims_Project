@@ -1,4 +1,5 @@
-### COMPARACIÓN MODELOS
+COMPARATIVA DE LOS MODELOS APLICADOS
+------------------------------------
 
 ### MODELOS DE CLASIFICACIÓN
 
@@ -46,7 +47,7 @@ Los resultados obtenidos para la clasificación con GLM:
 </table>
 
 "model\_train\_clas" En el caso del fichero train en el que la clase
-esta desequilibrada, cualquier modelo que no tenga ninguna clase de
+está desequilibrada, cualquier modelo que no tenga ninguna clase de
 penalización tenderá a clasificar en la clase mayoritaria, en este caso
 0, por lo que el Accuracy tenderá a ser elevado aunque no prediga bien
 ya que un alto porcentaje de los datos tienen importe 0.
@@ -57,6 +58,38 @@ predecir tantos casos de una clase como de la otra. La precisión
 aumentará porque el número de TRUE POSITIVE aumenta pero también lo hace
 el número de False Positive que es muy elevado, esto sucede porque
 clasifica con una probabilidad aproximadamente del 50% para cada clase.
+
+Con esta tabla podemos comprobar que el modelo que mejor se ajusta está
+entrenado con el train equilibrado, basándonos en su precisión del 75%.
+Su matriz de confusión es la siguiente:
+
+<table>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="left">no</th>
+<th align="left">si</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">no</td>
+<td align="left">624705</td>
+<td align="left">5790</td>
+</tr>
+<tr class="even">
+<td align="left">si</td>
+<td align="left">2647039</td>
+<td align="left">18033</td>
+</tr>
+</tbody>
+</table>
+
+Como podemos ver aunque el porcentaje de precisión es alto, la
+clasificación no es buena puesto que el número de Falsos Positivos es
+muy elevado, con lo que podemos confirmar que con el modelo de Lineal
+Generalizado las variables independientes no aportan información
+significativa para clasificar.
 
 #### MODELO DE CLASIFICACIÓN CON RANDOM FOREST
 
@@ -113,7 +146,7 @@ observaciones con clase 0 y con clase 1. Esto se suele solucionar
 calibrando las probabilidades.
 
 Calibrado de probabilidades para el modelo con mayor precisión
-(clasificamos como 1 cuando la probabilidad es mayor que 0.6,0.7 o 0.95
+(clasificamos como 1 cuando la probabilidad es mayor que 0.6, 0.7 o 0.95
 respectivamente):
 
 <table>
@@ -148,10 +181,10 @@ respectivamente):
 </table>
 
 Con las variables aportadas el modelo no clasifica bien, el número de
-Falsos positivos y falsos negativos es muy elevado. En el caso de
+Falsos Positivos y Falsos Negativos es muy elevado. En el caso de
 seleccionar como clase 1 aquellos que tienen una probabilidad mayor del
 95% nos da 2.699.415 de observaciones como clase 1 erroneamente (Falsos
-Positivos)
+Positivos).
 
 ### MODELOS DE REGRESIÓN
 
@@ -234,7 +267,7 @@ el dataset.**
 
 #### MODELOS DE REGRESIÓN NO LINEALES
 
-Todos los modelos de predicción no lineal se han realizado a partir de
+Todos los modelos de predicción no lineales se han realizado a partir de
 una muestra aleatoria de 5000 observaciones del fichero Train Agregado y
 Train Down Sample, lo hemos realizado de ésta manera por los tiempos
 computacionales y para poder ver de una manera rápida si existe relación
