@@ -111,7 +111,7 @@ sum(train$Claim_Amount!=0)
 prop_siniestro <- c((sum(train$Claim_Amount==0)/nrow(train)),(sum(train$Claim_Amount!=0)/nrow(train)))
 prop_siniestro
 ```
-*El 99,27% de las observaciones no han sufrido daño corporal.*
+El 99,27% de las observaciones no han sufrido daño corporal.
 
 
 |Indemnización|NumObservaciones|Porcentaje|
